@@ -1472,7 +1472,6 @@ function renderAudit(){
       <div class="audit-info"><div class="audit-desc">${a.desc}</div><div class="audit-date">${a.date||''}</div></div>
     </div>`).join('');
 }
-const _origOpenModal=window.openModal;
 window.openModal=function(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-audit') renderAudit();
@@ -2345,7 +2344,6 @@ window.confirmDelete=function(msg,cb){
 };
 
 // MODALS
-window.openModal=function(id){document.getElementById(id).classList.add('open');};
 window.closeModal=function(id){document.getElementById(id).classList.remove('open');};
 document.querySelectorAll('.modal-overlay').forEach(mo=>{mo.addEventListener('click',e=>{if(e.target===mo)mo.classList.remove('open');});});
 
