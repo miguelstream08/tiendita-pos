@@ -466,6 +466,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   .inv-table,. sales-table,.subs-table{overflow-x:auto;}
   .subs-grid{grid-template-columns:1fr;}
   .clients-grid{grid-template-columns:1fr;}
+  .clients-tab-btn{font-size:12px;padding:6px 10px;}
   .kpi-row{grid-template-columns:repeat(2,1fr);}
   .topbar-nav{gap:1px;}
   .topnav-btn{padding:5px 7px;font-size:11px;}
@@ -520,6 +521,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .inv-grid-actions button:hover{background:var(--marino);color:#fff;}
 .inv-grid-actions button.danger{background:#fee2e2;color:#991b1b;}
 .inv-grid-actions button.danger:hover{background:#991b1b;color:#fff;}
+
+/* ── CLIENT TABS ── */
+.clients-tab-btn{display:inline-flex;align-items:center;gap:6px;background:var(--gris-light);border:2px solid var(--crema-dark);border-radius:9px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--gris);cursor:pointer;transition:all .2s;}
+.clients-tab-btn:hover{border-color:var(--marino);color:var(--marino);}
+.clients-tab-btn.active{background:var(--marino);border-color:var(--marino);color:#fff;}
+.ctab-count{background:rgba(255,255,255,.2);border-radius:20px;padding:1px 7px;font-size:11px;font-family:'DM Mono',monospace;}
+.clients-tab-btn:not(.active) .ctab-count{background:var(--crema-dark);color:var(--marino);}
+
+/* ── CLIENT LIST ROW ── */
+.client-list-row{background:#fff;border-radius:11px;border:2px solid var(--crema-dark);padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s;}
+.client-list-row:hover{border-color:var(--marino);box-shadow:0 3px 12px rgba(12,35,64,.1);}
+.client-list-row.has-debt{border-left:4px solid var(--rojo);}
+.clr-avatar{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--crema-dark);}
+.clr-avatar img,.clr-avatar>div{width:100%;height:100%;object-fit:cover;}
+.clr-info{flex:1;min-width:0;}
+.clr-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.clr-cycle{font-size:10px;color:var(--gris);margin-top:1px;}
+.clr-debt{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+.clr-debt.red{color:var(--rojo);}
+.clr-debt.green{color:var(--verde);}
+.clr-actions{display:flex;gap:4px;flex-shrink:0;}
+.clr-btn{width:30px;height:30px;border:none;border-radius:7px;background:var(--gris-light);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--marino);}
+.clr-btn svg{width:13px;height:13px;stroke-width:2;}
+.clr-btn:hover{background:var(--marino);color:#fff;}
+.clr-btn.pay{background:var(--rojo);color:#fff;}
+.clr-btn.pay:hover{background:var(--rojo-dark);}
+.clr-btn.danger{background:#fee2e2;color:#991b1b;}
+.clr-btn.danger:hover{background:#991b1b;color:#fff;}
+
+/* ── SUBS ACCORDION (mobile) ── */
+.sub-accordion-item{background:#fff;border-radius:13px;border:2px solid var(--crema-dark);overflow:hidden;}
+.sub-accordion-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:background .2s;}
+.sub-accordion-header:hover{background:var(--gris-light);}
+.sub-accordion-header.open{border-bottom:1px solid var(--crema-dark);}
+.sub-accordion-body{padding:12px 16px;display:none;}
+.sub-accordion-body.open{display:block;}
+.sub-accordion-chevron{margin-left:auto;width:16px;height:16px;stroke:var(--gris);transition:transform .3s;flex-shrink:0;}
+.sub-accordion-chevron.open{transform:rotate(180deg);}
+
 </style>
 </head>
 <body>
@@ -651,23 +691,51 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 
 <!-- CLIENTES -->
 <div class="view" id="view-clientes">
-  <div class="section-header">
-    <div class="section-title">CLIENTES</div>
-    <button class="btn-primary" onclick="openAddCliente()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nuevo Cliente
-    </button>
+  <!-- Header -->
+  <div class="section-header" style="flex-shrink:0">
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="clients-tab-btn active" id="ctab-tiendita" onclick="switchClientsTab('tiendita')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px;stroke-width:2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Tiendita <span class="ctab-count" id="ctab-count-tiendita">0</span>
+      </button>
+      <button class="clients-tab-btn" id="ctab-apps" onclick="switchClientsTab('apps')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px;stroke-width:2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Apps <span class="ctab-count" id="ctab-count-apps">0</span>
+      </button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <!-- View toggle -->
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="clients-view-grid" onclick="setClientsView('grid')" title="Grid">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button class="view-toggle-btn" id="clients-view-list" onclick="setClientsView('list')" title="Lista">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+      </div>
+      <button class="btn-primary" onclick="openAddCliente()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo
+      </button>
+    </div>
   </div>
-  <div class="clients-section-label">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-    Tiendita
+  <!-- Search -->
+  <div style="position:relative;flex-shrink:0">
+    <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gris);display:flex">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </span>
+    <input class="search-input" type="text" placeholder="Buscar cliente..." id="clients-search" oninput="renderClients()" style="padding-left:32px">
   </div>
-  <div class="clients-grid" id="clients-grid-tiendita"></div>
-  <div class="clients-section-label" id="apps-section-label" style="display:none">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-    Apps Compartidas
+  <!-- Tiendita tab -->
+  <div id="clients-tab-tiendita" style="flex:1;overflow-y:auto">
+    <div class="clients-grid" id="clients-grid-tiendita"></div>
+    <div class="clients-list" id="clients-list-tiendita" style="display:none;flex-direction:column;gap:6px"></div>
   </div>
-  <div class="clients-grid" id="clients-grid-apps"></div>
+  <!-- Apps tab -->
+  <div id="clients-tab-apps" style="display:none;flex:1;overflow-y:auto">
+    <div class="clients-grid" id="clients-grid-apps"></div>
+    <div class="clients-list" id="clients-list-apps" style="display:none;flex-direction:column;gap:6px"></div>
+  </div>
 </div>
 
 <!-- INVENTARIO -->
@@ -798,14 +866,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 
 <!-- SUSCRIPCIONES -->
 <div class="view" id="view-suscripciones">
-  <div class="section-header">
+  <div class="section-header" style="flex-shrink:0">
     <div class="section-title">SUSCRIPCIONES</div>
     <button class="btn-primary" onclick="openAddSub()">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nueva Plataforma
+      Nueva
     </button>
   </div>
-  <div class="subs-grid" id="subs-grid"></div>
+  <!-- Desktop: grid | Mobile: accordion -->
+  <div class="subs-grid" id="subs-grid" style="overflow-y:auto;flex:1"></div>
+  <div id="subs-accordion" style="display:none;flex-direction:column;gap:8px;overflow-y:auto;flex:1"></div>
 </div>
 
 <!-- MODAL DETALLE SUSCRIPCIÓN POR CLIENTE -->
@@ -1494,52 +1564,111 @@ const USER_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fil
 const EDIT_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
 const DEL_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 const PAY_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+// ── CLIENTS STATE ──
+let clientsTab='tiendita'; // 'tiendita' | 'apps'
+let clientsViewMode='grid'; // 'grid' | 'list'
+
+window.switchClientsTab=function(tab){
+  clientsTab=tab;
+  document.getElementById('ctab-tiendita').classList.toggle('active',tab==='tiendita');
+  document.getElementById('ctab-apps').classList.toggle('active',tab==='apps');
+  document.getElementById('clients-tab-tiendita').style.display=tab==='tiendita'?'block':'none';
+  document.getElementById('clients-tab-apps').style.display=tab==='apps'?'block':'none';
+  renderClients();
+};
+window.setClientsView=function(mode){
+  clientsViewMode=mode;
+  document.getElementById('clients-view-grid').classList.toggle('active',mode==='grid');
+  document.getElementById('clients-view-list').classList.toggle('active',mode==='list');
+  renderClients();
+};
+
+function makeClientAvatar(c){
+  const initials=c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const colors=['#C8102E','#0C2340','#2a5298','#d97706','#16a34a','#7c3aed','#0891b2'];
+  const colorIdx=c.name.charCodeAt(0)%colors.length;
+  return c.photo
+    ?`<img src="${c.photo}">`
+    :`<div style="width:100%;height:100%;background:${colors[colorIdx]};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:16px;color:#fff;letter-spacing:1px">${initials}</div>`;
+}
+
+function makeClientCard(c){
+  const hd=(c.debt||0)>0;
+  const av=makeClientAvatar(c);
+  const appShared=c.appShared||false;
+  const type=c.clientType||(appShared?'ambos':'tiendita');
+  const cl={semanal:'Semanal',mensual:'Mensual',inmediato:'Inmediato'}[c.cycle]||c.cycle;
+  const cycleDisplay=type==='app'
+    ?`<div class="cc-cycle" style="background:#dbeafe;color:#1e40af">App · Mensual</div>`
+    :type==='ambos'
+      ?`<div class="cc-cycle">Tiendita · ${cl}</div><div class="cc-cycle" style="background:#dbeafe;color:#1e40af">App · Mensual</div>`
+      :`<div class="cc-cycle">Tiendita · ${cl}</div>`;
+  return `<div class="client-card ${hd?'has-debt':''}">
+    <div class="cc-top"><div class="cc-avatar">${av}</div><div><div class="cc-name">${c.name}</div>${cycleDisplay}</div>${appShared?'<div class="cc-app-badge">App</div>':''}</div>
+    <div class="cc-debt-label">Saldo pendiente</div>
+    <div class="cc-debt-val ${!hd?'zero':''}">${hd?'$'+(c.debt||0).toFixed(2):'Al día'}</div>
+    ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
+    <div class="cc-actions">
+      <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
+      <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
+      ${hd?`<button class="cc-btn pay" onclick="openPago('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
+      <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
+      <button class="cc-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))">${DEL_ICON}</button>
+    </div>
+    <div class="cc-app-toggle">
+      <input type="checkbox" id="app-${c.id}" ${appShared?'checked':''} onchange="toggleAppShared('${c.id}',this.checked)">
+      <label for="app-${c.id}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>App compartida</label>
+    </div>
+  </div>`;
+}
+
+function makeClientListRow(c){
+  const hd=(c.debt||0)>0;
+  const av=makeClientAvatar(c);
+  const appShared=c.appShared||false;
+  const type=c.clientType||(appShared?'ambos':'tiendita');
+  const cl={semanal:'Semanal',mensual:'Mensual',inmediato:'Inmediato'}[c.cycle]||c.cycle;
+  const cycleStr=type==='app'?'App · Mensual':type==='ambos'?`Tiendita · ${cl} · App · Mensual`:`Tiendita · ${cl}`;
+  return `<div class="client-list-row ${hd?'has-debt':''}">
+    <div class="clr-avatar">${av}</div>
+    <div class="clr-info">
+      <div class="clr-name">${c.name}</div>
+      <div class="clr-cycle">${cycleStr}${(c.credit||0)>0?' · ★ $'+(c.credit||0).toFixed(2)+' a favor':''}</div>
+    </div>
+    <div class="clr-debt ${hd?'red':'green'}">${hd?'$'+(c.debt||0).toFixed(2):'Al día'}</div>
+    <div class="clr-actions">
+      <button class="clr-btn" onclick="openStatement('${c.id}')" title="Cuenta"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+      <button class="clr-btn" onclick="openEditCliente('${c.id}')" title="Editar">${EDIT_ICON}</button>
+      ${hd?`<button class="clr-btn pay" onclick="openPago('${c.id}')" title="Cobrar">${PAY_ICON}</button>`:''}
+      <button class="clr-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))" title="Eliminar">${DEL_ICON}</button>
+    </div>
+  </div>`;
+}
+
 function renderClients(){
-  const makeCard=(c)=>{
-    const hd=(c.debt||0)>0;
-    const initials=c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    const colors=['#C8102E','#0C2340','#2a5298','#d97706','#16a34a','#7c3aed','#0891b2'];
-    const colorIdx=c.name.charCodeAt(0)%colors.length;
-    const av=c.photo
-      ?`<img src="${c.photo}">`
-      :`<div style="width:100%;height:100%;background:${colors[colorIdx]};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:16px;color:#fff;letter-spacing:1px">${initials}</div>`;
-    const appShared=c.appShared||false;
-    const type=c.clientType||(appShared?'ambos':'tiendita');
-    const cl={semanal:'Semanal',mensual:'Mensual',inmediato:'Inmediato'}[c.cycle]||c.cycle;
-    const cycleDisplay=type==='app'
-      ?`<div class="cc-cycle" style="background:#dbeafe;color:#1e40af">App · Mensual</div>`
-      :type==='ambos'
-        ?`<div class="cc-cycle">Tiendita · ${cl}</div><div class="cc-cycle" style="background:#dbeafe;color:#1e40af">App · Mensual</div>`
-        :`<div class="cc-cycle">Tiendita · ${cl}</div>`;
-    return `<div class="client-card ${hd?'has-debt':''}">
-      <div class="cc-top"><div class="cc-avatar">${av}</div><div><div class="cc-name">${c.name}</div>${cycleDisplay}</div>${appShared?`<div class="cc-app-badge">App</div>`:''}</div>
-      <div class="cc-debt-label">Saldo pendiente</div>
-      <div class="cc-debt-val ${!hd?'zero':''}">${hd?'$'+(c.debt||0).toFixed(2):'Al día'}</div>
-      ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
-      <div class="cc-actions">
-        <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
-        <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
-        ${hd?`<button class="cc-btn pay" onclick="openPago('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
-        <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
-        <button class="cc-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))">${DEL_ICON}</button>
-      </div>
-      <div class="cc-app-toggle">
-        <input type="checkbox" id="app-${c.id}" ${appShared?'checked':''} onchange="toggleAppShared('${c.id}',this.checked)">
-        <label for="app-${c.id}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>App compartida</label>
-      </div>
-    </div>`;
-  };
-  const sorted=[...clients].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  document.getElementById('clients-grid-tiendita').innerHTML=sorted.map(c=>makeCard(c)).join('');
-  const appClients=sorted.filter(c=>c.appShared);
-  const appsLabel=document.getElementById('apps-section-label');
-  const appsGrid=document.getElementById('clients-grid-apps');
-  if(appClients.length){
-    appsLabel.style.display='flex';
-    appsGrid.innerHTML=appClients.map(c=>makeCard(c)).join('');
+  const search=(document.getElementById('clients-search')?.value||'').toLowerCase();
+  const all=[...clients].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const tiendaClients=all.filter(c=>(!c.clientType||c.clientType==='tiendita'||c.clientType==='ambos')&&(c.name.toLowerCase().includes(search)));
+  const appClients=all.filter(c=>c.appShared&&(c.name.toLowerCase().includes(search)));
+
+  // Update counts
+  document.getElementById('ctab-count-tiendita').textContent=tiendaClients.length;
+  document.getElementById('ctab-count-apps').textContent=appClients.length;
+
+  // Render current tab
+  const list=clientsTab==='tiendita'?tiendaClients:appClients;
+  const gridIdPrefix=clientsTab==='tiendita'?'clients-grid-tiendita':'clients-grid-apps';
+  const listIdPrefix=clientsTab==='tiendita'?'clients-list-tiendita':'clients-list-apps';
+  const gridEl=document.getElementById(gridIdPrefix);
+  const listEl=document.getElementById(listIdPrefix);
+  const empty=`<div style="color:var(--gris);font-size:13px;padding:16px;text-align:center">Sin clientes</div>`;
+
+  if(clientsViewMode==='grid'){
+    gridEl.style.display='grid'; listEl.style.display='none';
+    gridEl.innerHTML=list.length?list.map(c=>makeClientCard(c)).join(''):empty;
   } else {
-    appsLabel.style.display='none';
-    appsGrid.innerHTML='';
+    gridEl.style.display='none'; listEl.style.display='flex';
+    listEl.innerHTML=list.length?list.map(c=>makeClientListRow(c)).join(''):empty;
   }
 }
 let currentClientType='tiendita';
@@ -2288,6 +2417,74 @@ window.setInvView=function(mode){
   document.getElementById('inv-view-list').classList.toggle('active',mode==='list');
   renderInventario();
 };
+
+
+// ── SUBS ACCORDION (mobile) ──
+let subsAccordionOpen={};
+window.toggleSubAccordion=function(subId){
+  subsAccordionOpen[subId]=!subsAccordionOpen[subId];
+  renderSubsGrid();
+};
+
+function isMobile(){return window.innerWidth<=768;}
+
+// Patch renderSubsGrid to also render accordion on mobile
+const _origRenderSubsGrid=renderSubsGrid;
+function renderSubsGridFull(){
+  _origRenderSubsGrid();
+  if(isMobile()) renderSubsAccordion();
+  const grid=document.getElementById('subs-grid');
+  const acc=document.getElementById('subs-accordion');
+  if(grid&&acc){
+    if(isMobile()){grid.style.display='none';acc.style.display='flex';}
+    else{grid.style.display='grid';acc.style.display='none';}
+  }
+}
+// Override
+window.renderSubsGrid=renderSubsGridFull;
+
+function renderSubsAccordion(){
+  const el=document.getElementById('subs-accordion');if(!el)return;
+  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
+  const sortedSubs=[...subscriptions].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  el.innerHTML=sortedSubs.map(sub=>{
+    const members=sub.members||[];const slots=sub.slots||6;const used=members.length;
+    const logo=sub.logo?`<img src="${sub.logo}" style="width:100%;height:100%;object-fit:cover">`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" style="width:18px;height:18px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
+    const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
+    const paidNow=members.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
+    const isOpen=subsAccordionOpen[sub.id];
+    const sortedMembers=[...members].sort((a,b)=>{const ca=clients.find(x=>x.id===a.clientId);const cb=clients.find(x=>x.id===b.clientId);return(ca?.name||'').localeCompare(cb?.name||'','es');});
+    const memberRows=isOpen?sortedMembers.map(m=>{
+      const client=clients.find(cc=>cc.id===m.clientId);const name=client?client.name:'—';
+      const status=getMemberMonthStatus(m,curYear,curMonth);
+      let sLabel={paid:'Pagado',advance:'Adelantado',pending:'Pendiente'}[status];
+      if(status==='paid'&&m.paidUntil){const[uy,um]=m.paidUntil.split('-').map(Number);sLabel=`Hasta ${MONTH_NAMES[um-1]} ${uy}`;}
+      const sColor={paid:'var(--verde)',advance:'#1e40af',pending:'var(--rojo)'}[status];
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--crema-dark)">
+        <div style="flex:1;font-size:13px;font-weight:500">${name}</div>
+        <div style="font-size:11px;color:var(--gris)">${priceLabel}</div>
+        <div style="font-size:11px;font-weight:600;color:${sColor};cursor:pointer;text-decoration:underline" onclick="openSubDetail('${sub.id}','${m.clientId}')">${sLabel}</div>
+      </div>`;
+    }).join(''):'';
+    return `<div class="sub-accordion-item">
+      <div class="sub-accordion-header ${isOpen?'open':''}" onclick="toggleSubAccordion('${sub.id}')">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--marino);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">${logo}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${sub.name}</div>
+          <div style="font-size:11px;color:var(--gris)">${priceLabel} · ${used}/${slots} · ${paidNow}/${used} pagaron</div>
+        </div>
+        <svg class="sub-accordion-chevron ${isOpen?'open':''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      ${isOpen?`<div class="sub-accordion-body open" style="padding:0 14px 10px">${memberRows||'<div style="color:var(--gris);font-size:12px;padding:10px 0">Sin miembros</div>'}<div style="display:flex;gap:6px;margin-top:10px"><button class="adj-btn" onclick="openEditSub('${sub.id}')">${EDIT_ICON} Editar</button><button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${sub.name}?',()=>deleteSub('${sub.id}'))">${DEL_ICON}</button></div></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+window.addEventListener('resize',()=>{
+  if(document.getElementById('view-suscripciones')?.classList.contains('active')){
+    renderSubsGridFull();
+  }
+});
 
 </script>
 </body>
