@@ -2088,11 +2088,20 @@ async function seedSubsIfEmpty(){
 }
 const SUB_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
 function getMemberMonthStatus(member,year,month){return(member.payments||{})[`${year}-${month}`]||'pending';}
-function renderSubsGrid(){
+window.renderSubsGrid=function renderSubsGrid(){
   const el=document.getElementById('subs-grid');if(!el)return;
   if(!subscriptions.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px">Sin plataformas registradas</div>';return;}
   const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
   const sortedSubs=[...subscriptions].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  // Mobile/desktop toggle
+  const isMob=window.innerWidth<=768;
+  const grid=document.getElementById('subs-grid');
+  const acc=document.getElementById('subs-accordion');
+  if(grid&&acc){
+    if(isMob){grid.style.display='none';acc.style.display='flex';}
+    else{grid.style.display='grid';acc.style.display='none';}
+  }
+  if(isMob){renderSubsAccordion();return;}
   el.innerHTML=sortedSubs.map(sub=>{
     const members=sub.members||[];const slots=sub.slots||6;const used=members.length;const free=Math.max(0,slots-used);
     const logo=sub.logo?`<img src="${sub.logo}">`:`${SUB_ICON}`;
@@ -2451,20 +2460,7 @@ window.toggleSubAccordion=function(subId){
 
 function isMobile(){return window.innerWidth<=768;}
 
-// Patch renderSubsGrid to also render accordion on mobile
-const _origRenderSubsGrid=renderSubsGrid;
-function renderSubsGridFull(){
-  _origRenderSubsGrid();
-  if(isMobile()) renderSubsAccordion();
-  const grid=document.getElementById('subs-grid');
-  const acc=document.getElementById('subs-accordion');
-  if(grid&&acc){
-    if(isMobile()){grid.style.display='none';acc.style.display='flex';}
-    else{grid.style.display='grid';acc.style.display='none';}
-  }
-}
-// Override
-window.renderSubsGrid=renderSubsGridFull;
+// Mobile accordion handled inside renderSubsGrid directly
 
 function renderSubsAccordion(){
   const el=document.getElementById('subs-accordion');if(!el)return;
