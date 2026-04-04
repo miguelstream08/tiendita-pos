@@ -174,7 +174,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .clear-btn:hover{border-color:var(--rojo);color:var(--rojo-light);}
 
 /* GENERAL VIEWS */
-#view-clientes,#view-inventario,#view-ventas,#view-dashboard,#view-suscripciones,#view-ajustes{flex-direction:column;padding:16px;gap:13px;overflow-y:auto;}
+#view-clientes,#view-inventario,#view-ventas,#view-dashboard,#view-suscripciones,#view-ajustes{flex-direction:column;padding:16px;gap:13px;overflow-y:auto;overflow-x:hidden;height:100%;}
 .section-header{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
 .section-title{font-family:'Bebas Neue',cursive;font-size:23px;letter-spacing:1.5px;}
 .btn-primary{background:var(--rojo);border:none;border-radius:8px;padding:9px 15px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
@@ -665,14 +665,49 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 
 <!-- INVENTARIO -->
 <div class="view" id="view-inventario">
-  <div class="section-header">
+  <div class="section-header" style="flex-shrink:0">
     <div class="section-title">INVENTARIO</div>
-    <button class="btn-primary" onclick="openAddProducto()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nuevo Producto
-    </button>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="view-toggle">
+        <button class="view-toggle-btn" id="inv-view-grid" onclick="setInvView('grid')" title="Grid">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button class="view-toggle-btn active" id="inv-view-list" onclick="setInvView('list')" title="Lista">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+      </div>
+      <button class="btn-primary" onclick="openAddProducto()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo
+      </button>
+    </div>
   </div>
-  <div class="inv-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:600px"><thead><tr><th></th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="inv-tbody"></tbody></table></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <div class="search-wrap" style="flex:1;position:relative;">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gris);display:flex">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="search-input" type="text" placeholder="Buscar producto..." id="inv-search" oninput="renderInventario()" style="padding-left:32px">
+    </div>
+  </div>
+  <div class="categories" id="inv-categories" style="flex-shrink:0"></div>
+  <div id="inv-grid-wrap" class="inv-grid-wrap" style="display:none;overflow-y:auto;flex:1"></div>
+  <div id="inv-table-wrap" style="overflow-x:auto;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">
+    <table style="min-width:600px;width:100%;border-collapse:collapse;">
+      <thead style="position:sticky;top:0;z-index:2;">
+        <tr>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px"></th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Producto</th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Categoría</th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Precio</th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Stock</th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Estado</th>
+          <th style="background:var(--marino);color:var(--crema);padding:10px 13px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- VENTAS -->
@@ -1668,45 +1703,66 @@ window.saveProducto=async function(){
   setSynced();currentPhotoB64='';closeModal('modal-producto');
 };
 window.deleteProducto=async function(id){setSyncing();await deleteDoc(doc(db,'products',id));setSynced();showToast('Producto eliminado','success');};
+let invCurrentCat='Todos';
+function renderInvCategories(){
+  const cats=['Todos',...new Set(products.map(p=>p.cat))].sort((a,b)=>a==='Todos'?-1:a.localeCompare(b,'es'));
+  const el=document.getElementById('inv-categories');
+  if(!el)return;
+  el.innerHTML=cats.map(cat=>`<button class="cat-btn ${cat===invCurrentCat?'active':''}" onclick="selectInvCat('${cat}')">${cat}</button>`).join('');
+}
+window.selectInvCat=function(cat){invCurrentCat=cat;renderInvCategories();renderInventario();};
 function renderInventario(){
-  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  renderInvCategories();
+  const search=(document.getElementById('inv-search')?.value||'').toLowerCase();
+  let filtered=products.filter(p=>(invCurrentCat==='Todos'||p.cat===invCurrentCat)&&(p.name.toLowerCase().includes(search)||p.cat.toLowerCase().includes(search)));
+  const sorted=filtered.sort((a,b)=>a.name.localeCompare(b.name,'es'));
   if(invViewMode==='grid'){
-    document.getElementById('inv-grid-wrap').innerHTML=sorted.map(p=>{
-      let bc='',bt='OK',bts='ok';
-      if(p.stock===0){bc='out-border';bt='Agotado';bts='out';}else if(p.stock<=p.minStock){bc='low-border';bt='Bajo';bts='low';}
-      const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
-      return `<div class="inv-grid-card ${bc}">
-        <div class="inv-grid-img">${img}</div>
-        <div class="inv-grid-body">
-          <div class="inv-grid-name">${p.name}</div>
-          <div class="inv-grid-cat">${p.cat}</div>
-          <div class="inv-grid-price">$${p.price.toFixed(2)}</div>
-          <div class="inv-grid-stock"><span class="stock-badge ${bts}">${bt} · ${p.stock} uds</span></div>
-          <div class="inv-grid-actions">
-            <button onclick="openAdjStock('${p.id}')">Stock</button>
-            <button onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
-            <button class="danger" onclick="confirmDelete('¿Eliminar?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
+    document.getElementById('inv-grid-wrap').style.display='grid';
+    document.getElementById('inv-table-wrap').style.display='none';
+    document.getElementById('inv-grid-wrap').innerHTML=!sorted.length
+      ?'<div style="color:var(--gris);font-size:13px;padding:10px;grid-column:1/-1">Sin productos</div>'
+      :sorted.map(p=>{
+        let bc='',bt='OK',bts='ok';
+        if(p.stock===0){bc='out-border';bt='Agotado';bts='out';}else if(p.stock<=p.minStock){bc='low-border';bt='Bajo';bts='low';}
+        const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
+        return `<div class="inv-grid-card ${bc}">
+          <div class="inv-grid-img">${img}</div>
+          <div class="inv-grid-body">
+            <div class="inv-grid-name">${p.name}</div>
+            <div class="inv-grid-cat">${p.cat}</div>
+            <div class="inv-grid-price">$${p.price.toFixed(2)}</div>
+            <div class="inv-grid-stock"><span class="stock-badge ${bts}">${bt} · ${p.stock} uds</span></div>
+            <div class="inv-grid-actions">
+              <button onclick="openAdjStock('${p.id}')">Stock</button>
+              <button onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
+              <button class="danger" onclick="confirmDelete('¿Eliminar?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
+            </div>
           </div>
-        </div>
-      </div>`;
-    }).join('');
+        </div>`;
+      }).join('');
   } else {
-    document.getElementById('inv-tbody').innerHTML=sorted.map(p=>{
-      let bc='ok',bt='OK';
-      if(p.stock===0){bc='out';bt='Agotado';}else if(p.stock<=p.minStock){bc='low';bt='Stock bajo';}
-      const img=p.photo?`<div class="inv-thumb"><img src="${p.photo}"></div>`:`<div class="inv-thumb">${PROD_ICON}</div>`;
-      return `<tr>
-        <td>${img}</td><td><strong>${p.name}</strong></td><td>${p.cat}</td>
-        <td style="font-family:'DM Mono',monospace">$${p.price.toFixed(2)}</td>
-        <td style="font-family:'DM Mono',monospace">${p.stock} uds</td>
-        <td><span class="stock-badge ${bc}">${bt}</span></td>
-        <td><div class="tbl-actions">
-          <button class="adj-btn" onclick="openAdjStock('${p.id}')">Stock</button>
-          <button class="adj-btn" onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
-          <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${p.name}?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
-        </div></td>
-      </tr>`;
-    }).join('');
+    document.getElementById('inv-grid-wrap').style.display='none';
+    document.getElementById('inv-table-wrap').style.display='block';
+    document.getElementById('inv-tbody').innerHTML=!sorted.length
+      ?'<tr><td colspan="7" style="text-align:center;color:var(--gris);padding:20px">Sin productos</td></tr>'
+      :sorted.map(p=>{
+        let bc='ok',bt='OK';
+        if(p.stock===0){bc='out';bt='Agotado';}else if(p.stock<=p.minStock){bc='low';bt='Stock bajo';}
+        const img=p.photo?`<div class="inv-thumb"><img src="${p.photo}"></div>`:`<div class="inv-thumb">${PROD_ICON}</div>`;
+        return `<tr>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark)">${img}</td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark)"><strong>${p.name}</strong></td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark);font-size:12px">${p.cat}</td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark);font-family:'DM Mono',monospace;font-size:12px">$${p.price.toFixed(2)}</td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark);font-family:'DM Mono',monospace;font-size:12px">${p.stock} uds</td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark)"><span class="stock-badge ${bc}">${bt}</span></td>
+          <td style="padding:9px 13px;border-bottom:1px solid var(--crema-dark)"><div class="tbl-actions">
+            <button class="adj-btn" onclick="openAdjStock('${p.id}')">Stock</button>
+            <button class="adj-btn" onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
+            <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${p.name}?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
+          </div></td>
+        </tr>`;
+      }).join('');
   }
 }
 window.openAdjStock=function(prodId){
@@ -2223,8 +2279,6 @@ window.setInvView=function(mode){
   invViewMode=mode;
   document.getElementById('inv-view-grid').classList.toggle('active',mode==='grid');
   document.getElementById('inv-view-list').classList.toggle('active',mode==='list');
-  document.getElementById('inv-grid-wrap').style.display=mode==='grid'?'grid':'none';
-  document.getElementById('inv-table-wrap').style.display=mode==='list'?'block':'none';
   renderInventario();
 };
 
