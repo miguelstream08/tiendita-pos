@@ -463,7 +463,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   .order-panel{width:100%;height:auto;min-height:320px;}
   .order-items{max-height:200px;}
   #view-clientes,#view-inventario,#view-ventas,#view-dashboard,#view-suscripciones,#view-ajustes{overflow:visible;height:auto;}
-  .inv-table,. sales-table,.subs-table{overflow-x:auto;}
+  .inv-table,.sales-table,.subs-table{overflow-x:auto;}
   .subs-grid{grid-template-columns:1fr;}
   .clients-grid{grid-template-columns:1fr;}
   .clients-tab-btn{font-size:12px;padding:6px 10px;}
@@ -1238,13 +1238,12 @@ let payClientId=null,adjProdId=null,currentUser=null,pendingView=null;
 let storeLogoB64='',storeName='La Tiendita',cutDay=5;
 let currentPhotoB64='',currentAvatarB64='',currentSubLogoB64='';
 
-const syncDot=document.getElementById('sync-dot');
-const setSyncing=()=>syncDot.className='sync-dot syncing';
-const setSynced=()=>syncDot.className='sync-dot';
-const setSyncError=()=>syncDot.className='sync-dot error';
+const setSyncing=()=>{const d=document.getElementById('sync-dot');if(d)d.className='sync-dot syncing';};
+const setSynced=()=>{const d=document.getElementById('sync-dot');if(d)d.className='sync-dot';};
+const setSyncError=()=>{const d=document.getElementById('sync-dot');if(d)d.className='sync-dot error';};
 
 function updateDate(){document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('es-MX',{weekday:'short',year:'numeric',month:'short',day:'numeric'});}
-updateDate();setInterval(updateDate,60000);
+// updateDate called in init
 
 // AUTH
 onAuthStateChanged(auth,user=>{
@@ -1334,6 +1333,59 @@ async function seedIfEmpty(){
   }
 }
 
+
+window.renderSubsGrid=function renderSubsGrid(){
+  const el=document.getElementById('subs-grid');if(!el)return;
+  if(!subscriptions.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px">Sin plataformas registradas</div>';return;}
+  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
+  const sortedSubs=[...subscriptions].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  // Mobile/desktop toggle
+  const isMob=window.innerWidth<=768;
+  const grid=document.getElementById('subs-grid');
+  const acc=document.getElementById('subs-accordion');
+  if(grid&&acc){
+    if(isMob){grid.style.display='none';acc.style.display='flex';}
+    else{grid.style.display='grid';acc.style.display='none';}
+  }
+  if(isMob){renderSubsAccordion();return;}
+  el.innerHTML=sortedSubs.map(sub=>{
+    const members=sub.members||[];const slots=sub.slots||6;const used=members.length;const free=Math.max(0,slots-used);
+    const logo=sub.logo?`<img src="${sub.logo}">`:`${SUB_ICON}`;
+    const cycleLabel=sub.cycle==='anual'?'Anual':'Mensual';
+    const dateInfo=sub.cycle==='anual'&&(sub.startDate||sub.endDate)?
+      `<div style="font-size:10px;color:var(--gris);margin-top:2px">${sub.startDate?'Inicio: '+sub.startDate:''} ${sub.endDate?'· Vence: '+sub.endDate:''}</div>`:'';
+    const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
+    const dots=[...Array(slots)].map((_,i)=>`<div class="slot-dot ${i<used?'used':'free'}"></div>`).join('');
+    const sortedMembers=[...members].sort((a,b)=>{const ca=clients.find(x=>x.id===a.clientId);const cb=clients.find(x=>x.id===b.clientId);return(ca?.name||'').localeCompare(cb?.name||'','es');});
+    const memberRows=sortedMembers.map(m=>{
+      const client=clients.find(c=>c.id===m.clientId);const name=client?client.name:'—';
+      const status=getMemberMonthStatus(m,curYear,curMonth);
+      let sLabel={paid:'Pagado',advance:'Adelantado',pending:'Pendiente'}[status];
+      if(status==='paid'&&m.paidUntil){const[uy,um]=m.paidUntil.split('-').map(Number);sLabel=`Hasta ${MONTH_NAMES[um-1]} ${uy}`;}
+      const sColor={paid:'var(--verde)',advance:'#1e40af',pending:'var(--rojo)'}[status];
+      return `<div class="sub-member-row">
+        <div class="sub-member-name">${name}</div>
+        <div class="sub-member-share" style="font-size:11px;color:var(--gris)">${priceLabel}</div>
+        <div style="font-size:10px;font-weight:600;color:${sColor};cursor:pointer;text-decoration:underline" onclick="openSubDetail('${sub.id}','${m.clientId}')">${sLabel}</div>
+      </div>`;
+    }).join('');
+    const paidNow=sortedMembers.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
+    return `<div class="sub-card">
+      <div class="sub-card-header"><div class="sub-logo">${logo}</div>
+        <div style="flex:1"><div class="sub-name">${sub.name}</div><div class="sub-price">${priceLabel} · ${cycleLabel}</div>${dateInfo}</div>
+      </div>
+      <div class="slots-bar">${dots}</div>
+      <div class="sub-slots-info"><strong>${used}/${slots}</strong> espacios · <strong style="color:var(--verde)">${free}</strong> libre${free!==1?'s':''}</div>
+      <div style="font-size:11px;color:var(--gris);margin-bottom:8px">${MONTH_NAMES[curMonth]} ${curYear}: <strong style="color:${paidNow===used&&used>0?'var(--verde)':'var(--rojo)'}">${paidNow}/${used} pagaron</strong></div>
+      <div class="sub-members">${memberRows||'<div style="font-size:12px;color:var(--gris);padding:6px 0">Sin miembros — edita para agregar</div>'}</div>
+      <div class="sub-card-actions">
+        <button class="adj-btn" onclick="openEditSub('${sub.id}')">${EDIT_ICON} Editar</button>
+        <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${sub.name}?',()=>deleteSub('${sub.id}'))">${DEL_ICON}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function startListeners(){
   onSnapshot(collection(db,'products'),snap=>{products=snap.docs.map(d=>({id:d.id,...d.data()}));renderCategories();renderProducts();if(document.getElementById('view-inventario').classList.contains('active'))renderInventario();if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();},()=>setSyncError());
   onSnapshot(collection(db,'clients'),snap=>{clients=snap.docs.map(d=>({id:d.id,...d.data()}));populateClientSelect();if(document.getElementById('view-clientes').classList.contains('active'))renderClients();if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();renderSubsGrid();},()=>setSyncError());
@@ -1362,6 +1414,14 @@ async function init(){
   document.getElementById('loading-sub').textContent='Conectando con Firebase...';
   try{await seedIfEmpty();await seedSubsIfEmpty();startListeners();setSynced();setTimeout(checkAdvanceConfirmations,3000);}catch(e){setSyncError();showToast('Error de conexión','error');}
   document.getElementById('loading-screen').classList.add('hidden');
+  updateDate();setInterval(updateDate,60000);
+  // Attach DOM-dependent listeners
+  const czEl=document.getElementById('crop-zoom');
+  if(czEl) czEl.addEventListener('input',function(){if(cropper) cropper.zoomTo(parseFloat(this.value));});
+  // Attach modal close on outside click
+  
+  // Build mobile nav
+  if(typeof buildMobNav==='function') buildMobNav();
 }
 init();
 
@@ -2088,57 +2148,6 @@ async function seedSubsIfEmpty(){
 }
 const SUB_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
 function getMemberMonthStatus(member,year,month){return(member.payments||{})[`${year}-${month}`]||'pending';}
-window.renderSubsGrid=function renderSubsGrid(){
-  const el=document.getElementById('subs-grid');if(!el)return;
-  if(!subscriptions.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px">Sin plataformas registradas</div>';return;}
-  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
-  const sortedSubs=[...subscriptions].sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  // Mobile/desktop toggle
-  const isMob=window.innerWidth<=768;
-  const grid=document.getElementById('subs-grid');
-  const acc=document.getElementById('subs-accordion');
-  if(grid&&acc){
-    if(isMob){grid.style.display='none';acc.style.display='flex';}
-    else{grid.style.display='grid';acc.style.display='none';}
-  }
-  if(isMob){renderSubsAccordion();return;}
-  el.innerHTML=sortedSubs.map(sub=>{
-    const members=sub.members||[];const slots=sub.slots||6;const used=members.length;const free=Math.max(0,slots-used);
-    const logo=sub.logo?`<img src="${sub.logo}">`:`${SUB_ICON}`;
-    const cycleLabel=sub.cycle==='anual'?'Anual':'Mensual';
-    const dateInfo=sub.cycle==='anual'&&(sub.startDate||sub.endDate)?
-      `<div style="font-size:10px;color:var(--gris);margin-top:2px">${sub.startDate?'Inicio: '+sub.startDate:''} ${sub.endDate?'· Vence: '+sub.endDate:''}</div>`:'';
-    const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
-    const dots=[...Array(slots)].map((_,i)=>`<div class="slot-dot ${i<used?'used':'free'}"></div>`).join('');
-    const sortedMembers=[...members].sort((a,b)=>{const ca=clients.find(x=>x.id===a.clientId);const cb=clients.find(x=>x.id===b.clientId);return(ca?.name||'').localeCompare(cb?.name||'','es');});
-    const memberRows=sortedMembers.map(m=>{
-      const client=clients.find(c=>c.id===m.clientId);const name=client?client.name:'—';
-      const status=getMemberMonthStatus(m,curYear,curMonth);
-      let sLabel={paid:'Pagado',advance:'Adelantado',pending:'Pendiente'}[status];
-      if(status==='paid'&&m.paidUntil){const[uy,um]=m.paidUntil.split('-').map(Number);sLabel=`Hasta ${MONTH_NAMES[um-1]} ${uy}`;}
-      const sColor={paid:'var(--verde)',advance:'#1e40af',pending:'var(--rojo)'}[status];
-      return `<div class="sub-member-row">
-        <div class="sub-member-name">${name}</div>
-        <div class="sub-member-share" style="font-size:11px;color:var(--gris)">${priceLabel}</div>
-        <div style="font-size:10px;font-weight:600;color:${sColor};cursor:pointer;text-decoration:underline" onclick="openSubDetail('${sub.id}','${m.clientId}')">${sLabel}</div>
-      </div>`;
-    }).join('');
-    const paidNow=sortedMembers.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
-    return `<div class="sub-card">
-      <div class="sub-card-header"><div class="sub-logo">${logo}</div>
-        <div style="flex:1"><div class="sub-name">${sub.name}</div><div class="sub-price">${priceLabel} · ${cycleLabel}</div>${dateInfo}</div>
-      </div>
-      <div class="slots-bar">${dots}</div>
-      <div class="sub-slots-info"><strong>${used}/${slots}</strong> espacios · <strong style="color:var(--verde)">${free}</strong> libre${free!==1?'s':''}</div>
-      <div style="font-size:11px;color:var(--gris);margin-bottom:8px">${MONTH_NAMES[curMonth]} ${curYear}: <strong style="color:${paidNow===used&&used>0?'var(--verde)':'var(--rojo)'}">${paidNow}/${used} pagaron</strong></div>
-      <div class="sub-members">${memberRows||'<div style="font-size:12px;color:var(--gris);padding:6px 0">Sin miembros — edita para agregar</div>'}</div>
-      <div class="sub-card-actions">
-        <button class="adj-btn" onclick="openEditSub('${sub.id}')">${EDIT_ICON} Editar</button>
-        <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${sub.name}?',()=>deleteSub('${sub.id}'))">${DEL_ICON}</button>
-      </div>
-    </div>`;
-  }).join('');
-}
 window.openSubDetail=function(subId,clientId){
   const sub=subscriptions.find(x=>x.id===subId);
   const member=sub.members.find(m=>m.clientId===clientId);
