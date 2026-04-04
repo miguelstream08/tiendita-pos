@@ -102,7 +102,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .cat-btn{background:#fff;border:2px solid var(--crema-dark);border-radius:7px;padding:5px 11px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--gris);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.4px;}
 .cat-btn:hover{border-color:var(--marino);color:var(--marino);}
 .cat-btn.active{background:var(--marino);border-color:var(--marino);color:#fff;}
-.products-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding-right:2px;}
+.products-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding-right:2px;align-content:start;}
 .products-grid::-webkit-scrollbar{width:3px;}
 .products-grid::-webkit-scrollbar-thumb{background:var(--crema-dark);border-radius:4px;}
 .product-card{background:#fff;border-radius:11px;cursor:pointer;transition:all .18s;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden;}
@@ -111,13 +111,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .product-card:hover::before{transform:scaleX(1);}
 .product-card.low-stock{border-color:var(--naranja);}
 .product-card.out-stock{opacity:.4;pointer-events:none;}
-.product-img-wrap{width:100%;aspect-ratio:1;background:var(--gris-light);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.product-img-wrap{width:100%;aspect-ratio:1;max-height:90px;background:var(--gris-light);display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .product-img-wrap img{width:100%;height:100%;object-fit:cover;}
 .product-img-wrap svg{width:32px;height:32px;stroke:var(--gris);stroke-width:1.25;}
-.product-info{padding:7px 6px 9px;width:100%;}
-.product-name{font-size:11px;font-weight:600;line-height:1.2;margin-bottom:3px;}
-.product-price{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--rojo);}
-.product-stock-badge{font-size:10px;padding:2px 7px;border-radius:10px;margin-top:4px;display:inline-block;}
+.product-info{padding:5px 6px 7px;width:100%;}
+.product-name{font-size:11px;font-weight:600;line-height:1.2;margin-bottom:2px;}
+.product-price{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--rojo);}
+.product-stock-badge{font-size:9px;padding:1px 6px;border-radius:10px;margin-top:2px;display:inline-block;}
 .sb-low{background:#fff3cd;color:#856404;}
 .sb-ok{background:#d1fae5;color:#065f46;}
 .sb-out{background:#fee2e2;color:#991b1b;}
@@ -262,7 +262,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .audit-date{font-size:10px;color:var(--gris);font-family:'DM Mono',monospace;}
 .slots-bar{display:flex;gap:4px;margin:8px 0 4px;flex-wrap:wrap;}
 .slot-dot{width:12px;height:12px;border-radius:50%;transition:all .2s;}
-.slot-dot.used{background:var(--rojo);}
+.slot-dot.used{background:var(--verde);box-shadow:0 0 4px rgba(22,163,74,.4);}
 .slot-dot.free{background:var(--crema-dark);}
 .sub-slots-info{font-size:11px;color:var(--gris);margin-bottom:10px;}
 .sub-slots-info strong{color:var(--marino);}
@@ -493,6 +493,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   .mob-nav-dropdown{display:none;}
   .mob-nav-dropdown.open{display:flex;}
 }
+
+/* INVENTORY GRID VIEW */
+.inv-grid-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.inv-grid-card{background:#fff;border-radius:11px;border:2px solid var(--crema-dark);overflow:hidden;transition:all .18s;cursor:default;}
+.inv-grid-card:hover{border-color:var(--marino);box-shadow:0 4px 14px rgba(12,35,64,.1);}
+.inv-grid-card.low-border{border-color:var(--naranja);}
+.inv-grid-card.out-border{opacity:.5;}
+.inv-grid-img{width:100%;aspect-ratio:1;background:var(--gris-light);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.inv-grid-img img{width:100%;height:100%;object-fit:cover;}
+.inv-grid-img svg{width:28px;height:28px;stroke:var(--gris);}
+.inv-grid-body{padding:8px 10px 10px;}
+.inv-grid-name{font-size:12px;font-weight:700;margin-bottom:2px;}
+.inv-grid-cat{font-size:10px;color:var(--gris);margin-bottom:4px;}
+.inv-grid-price{font-family:'DM Mono',monospace;font-size:13px;color:var(--rojo);font-weight:600;}
+.inv-grid-stock{font-size:10px;margin-top:4px;}
+.inv-grid-actions{display:flex;gap:4px;margin-top:8px;}
+.inv-grid-actions button{flex:1;background:var(--gris-light);border:none;border-radius:6px;padding:5px 4px;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--marino);}
+.inv-grid-actions button:hover{background:var(--marino);color:#fff;}
+.inv-grid-actions button.danger{background:#fee2e2;color:#991b1b;}
+.inv-grid-actions button.danger:hover{background:#991b1b;color:#fff;}
 </style>
 </head>
 <body>
@@ -1649,22 +1669,45 @@ window.saveProducto=async function(){
 };
 window.deleteProducto=async function(id){setSyncing();await deleteDoc(doc(db,'products',id));setSynced();showToast('Producto eliminado','success');};
 function renderInventario(){
-  document.getElementById('inv-tbody').innerHTML=products.map(p=>{
-    let bc='ok',bt='OK';
-    if(p.stock===0){bc='out';bt='Agotado';}else if(p.stock<=p.minStock){bc='low';bt='Stock bajo';}
-    const img=p.photo?`<div class="inv-thumb"><img src="${p.photo}"></div>`:`<div class="inv-thumb">${PROD_ICON}</div>`;
-    return `<tr>
-      <td>${img}</td><td><strong>${p.name}</strong></td><td>${p.cat}</td>
-      <td style="font-family:'DM Mono',monospace">$${p.price.toFixed(2)}</td>
-      <td style="font-family:'DM Mono',monospace">${p.stock} uds</td>
-      <td><span class="stock-badge ${bc}">${bt}</span></td>
-      <td><div class="tbl-actions">
-        <button class="adj-btn" onclick="openAdjStock('${p.id}')">Stock</button>
-        <button class="adj-btn" onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
-        <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${p.name}?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
-      </div></td>
-    </tr>`;
-  }).join('');
+  const sorted=[...products].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  if(invViewMode==='grid'){
+    document.getElementById('inv-grid-wrap').innerHTML=sorted.map(p=>{
+      let bc='',bt='OK',bts='ok';
+      if(p.stock===0){bc='out-border';bt='Agotado';bts='out';}else if(p.stock<=p.minStock){bc='low-border';bt='Bajo';bts='low';}
+      const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
+      return `<div class="inv-grid-card ${bc}">
+        <div class="inv-grid-img">${img}</div>
+        <div class="inv-grid-body">
+          <div class="inv-grid-name">${p.name}</div>
+          <div class="inv-grid-cat">${p.cat}</div>
+          <div class="inv-grid-price">$${p.price.toFixed(2)}</div>
+          <div class="inv-grid-stock"><span class="stock-badge ${bts}">${bt} · ${p.stock} uds</span></div>
+          <div class="inv-grid-actions">
+            <button onclick="openAdjStock('${p.id}')">Stock</button>
+            <button onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
+            <button class="danger" onclick="confirmDelete('¿Eliminar?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('inv-tbody').innerHTML=sorted.map(p=>{
+      let bc='ok',bt='OK';
+      if(p.stock===0){bc='out';bt='Agotado';}else if(p.stock<=p.minStock){bc='low';bt='Stock bajo';}
+      const img=p.photo?`<div class="inv-thumb"><img src="${p.photo}"></div>`:`<div class="inv-thumb">${PROD_ICON}</div>`;
+      return `<tr>
+        <td>${img}</td><td><strong>${p.name}</strong></td><td>${p.cat}</td>
+        <td style="font-family:'DM Mono',monospace">$${p.price.toFixed(2)}</td>
+        <td style="font-family:'DM Mono',monospace">${p.stock} uds</td>
+        <td><span class="stock-badge ${bc}">${bt}</span></td>
+        <td><div class="tbl-actions">
+          <button class="adj-btn" onclick="openAdjStock('${p.id}')">Stock</button>
+          <button class="adj-btn" onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
+          <button class="adj-btn danger" onclick="confirmDelete('¿Eliminar ${p.name}?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
 }
 window.openAdjStock=function(prodId){
   adjProdId=prodId;const p=products.find(x=>x.id===prodId);
@@ -1833,7 +1876,8 @@ function renderSubsGrid(){
   const el=document.getElementById('subs-grid');if(!el)return;
   if(!subscriptions.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px">Sin plataformas registradas</div>';return;}
   const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
-  el.innerHTML=subscriptions.map(sub=>{
+  const sortedSubs=[...subscriptions].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  el.innerHTML=sortedSubs.map(sub=>{
     const members=sub.members||[];const slots=sub.slots||6;const used=members.length;const free=Math.max(0,slots-used);
     const logo=sub.logo?`<img src="${sub.logo}">`:`${SUB_ICON}`;
     const cycleLabel=sub.cycle==='anual'?'Anual':'Mensual';
@@ -1841,10 +1885,12 @@ function renderSubsGrid(){
       `<div style="font-size:10px;color:var(--gris);margin-top:2px">${sub.startDate?'Inicio: '+sub.startDate:''} ${sub.endDate?'· Vence: '+sub.endDate:''}</div>`:'';
     const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
     const dots=[...Array(slots)].map((_,i)=>`<div class="slot-dot ${i<used?'used':'free'}"></div>`).join('');
-    const memberRows=members.map(m=>{
+    const sortedMembers=[...members].sort((a,b)=>{const ca=clients.find(x=>x.id===a.clientId);const cb=clients.find(x=>x.id===b.clientId);return(ca?.name||'').localeCompare(cb?.name||'','es');});
+    const memberRows=sortedMembers.map(m=>{
       const client=clients.find(c=>c.id===m.clientId);const name=client?client.name:'—';
       const status=getMemberMonthStatus(m,curYear,curMonth);
-      const sLabel={paid:'Pagado',advance:'Adelantado',pending:'Pendiente'}[status];
+      let sLabel={paid:'Pagado',advance:'Adelantado',pending:'Pendiente'}[status];
+      if(status==='paid'&&m.paidUntil){const[uy,um]=m.paidUntil.split('-').map(Number);sLabel=`Hasta ${MONTH_NAMES[um-1]} ${uy}`;}
       const sColor={paid:'var(--verde)',advance:'#1e40af',pending:'var(--rojo)'}[status];
       return `<div class="sub-member-row">
         <div class="sub-member-name">${name}</div>
@@ -1852,7 +1898,7 @@ function renderSubsGrid(){
         <div style="font-size:10px;font-weight:600;color:${sColor};cursor:pointer;text-decoration:underline" onclick="openSubDetail('${sub.id}','${m.clientId}')">${sLabel}</div>
       </div>`;
     }).join('');
-    const paidNow=members.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
+    const paidNow=sortedMembers.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
     return `<div class="sub-card">
       <div class="sub-card-header"><div class="sub-logo">${logo}</div>
         <div style="flex:1"><div class="sub-name">${sub.name}</div><div class="sub-price">${priceLabel} · ${cycleLabel}</div>${dateInfo}</div>
@@ -1875,13 +1921,27 @@ window.openSubDetail=function(subId,clientId){
   if(!member||!client)return;
   document.getElementById('subdetail-title').textContent=`${client.name} — ${sub.name}`;
   const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
-  document.getElementById('subdetail-sub').textContent=`${priceLabel} · Verde=Pagado · Azul=Adelantado · Gris=Pendiente`;
+  const paidUntil=member.paidUntil;
+  let untilLabel='';
+  if(paidUntil){const[uy,um]=paidUntil.split('-').map(Number);untilLabel=` · Pagado hasta: ${MONTH_NAMES[um-1]} ${uy}`;}
+  document.getElementById('subdetail-sub').textContent=`${priceLabel}${untilLabel} · Toca un mes para marcar/desmarcar`;
   renderMonthPills(sub,member,subId,clientId);openModal('modal-sub-detail');
 };
 function renderMonthPills(sub,member,subId,clientId){
   const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
+  // Show from 18 months back to 12 months forward to cover annual plans
   const pills=[];
-  for(let i=-12;i<=6;i++){const d=new Date(curYear,curMonth+i,1);pills.push({y:d.getFullYear(),m:d.getMonth(),isCurrent:d.getFullYear()===curYear&&d.getMonth()===curMonth});}
+  for(let i=-18;i<=12;i++){
+    const d=new Date(curYear,curMonth+i,1);
+    pills.push({y:d.getFullYear(),m:d.getMonth(),isCurrent:d.getFullYear()===curYear&&d.getMonth()===curMonth});
+  }
+  // Update subtitle with current paidUntil
+  const paidUntil=member.paidUntil;
+  let untilLabel='Sin pagos registrados';
+  if(paidUntil){const[uy,um]=paidUntil.split('-').map(Number);untilLabel=`Pagado hasta: ${MONTH_NAMES[um-1]} ${uy}`;}
+  const subEl=document.getElementById('subdetail-sub');
+  const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
+  subEl.textContent=`${priceLabel} · ${untilLabel} · Toca para marcar/desmarcar`;
   document.getElementById('subdetail-months').innerHTML=pills.map(p=>{
     const status=getMemberMonthStatus(member,p.y,p.m);
     return `<div class="month-pill ${status} ${p.isCurrent?'current':''}" onclick="cycleMonthStatus('${subId}','${clientId}',${p.y},${p.m})" title="${MONTH_NAMES[p.m]} ${p.y}">
@@ -1889,14 +1949,68 @@ function renderMonthPills(sub,member,subId,clientId){
     </div>`;
   }).join('');
 }
+// helper: build payments map from paidUntil date string "YYYY-MM"
+function buildPaymentsFromUntil(paidUntil,existingPayments){
+  const payments={...existingPayments};
+  if(!paidUntil) return payments;
+  const [uy,um]=paidUntil.split('-').map(Number);
+  const endYear=uy, endMonth=um-1; // month is 0-indexed
+  // Mark all months up to paidUntil as paid
+  for(let y=endYear-3;y<=endYear;y++){
+    for(let m=0;m<12;m++){
+      if(y>endYear||(y===endYear&&m>endMonth)) break;
+      const k=`${y}-${m}`;
+      if(!payments[k]||payments[k]==='pending') payments[k]='paid';
+    }
+  }
+  // Clear months after paidUntil
+  Object.keys(payments).forEach(k=>{
+    const [ky,km]=k.split('-').map(Number);
+    if(ky>endYear||(ky===endYear&&km>endMonth)) delete payments[k];
+  });
+  return payments;
+}
+
+// Helper: get paidUntil from payments map
+function getPaidUntilFromPayments(payments){
+  const paidKeys=Object.keys(payments).filter(k=>payments[k]==='paid'||payments[k]==='advance');
+  if(!paidKeys.length) return null;
+  return paidKeys.sort().slice(-1)[0]; // last paid key "Y-M"
+}
+
 window.cycleMonthStatus=async function(subId,clientId,year,month){
   const sub=subscriptions.find(x=>x.id===subId);
   const memberIdx=sub.members.findIndex(m=>m.clientId===clientId);if(memberIdx===-1)return;
-  const member={...sub.members[memberIdx]};const payments={...member.payments||{}};const key=`${year}-${month}`;
-  payments[key]={pending:'paid',paid:'advance',advance:'pending'}[payments[key]||'pending'];
+  const member={...sub.members[memberIdx]};
+  let payments={...member.payments||{}};
+  const key=`${year}-${month}`;
+  const curStatus=payments[key]||'pending';
+
+  if(curStatus==='pending'||curStatus==='advance'){
+    // Mark this month as paid → cascade all previous months as paid too
+    // Set paidUntil to this month
+    const paidUntil=`${year}-${String(month+1).padStart(2,'0')}`;
+    payments=buildPaymentsFromUntil(paidUntil,payments);
+    member.paidUntil=paidUntil;
+  } else {
+    // Already paid → user is correcting: unmark this month and all future months
+    // Find which months to clear: this month and everything after
+    Object.keys(payments).forEach(k=>{
+      const [ky,km]=k.split('-').map(Number);
+      if(ky>year||(ky===year&&km>=month)) delete payments[k];
+    });
+    // Update paidUntil to month before this one
+    const prevDate=new Date(year,month-1,1);
+    member.paidUntil=payments&&Object.keys(payments).filter(k=>payments[k]==='paid').length>0
+      ?`${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`:'';
+  }
+
   member.payments=payments;
   const newMembers=[...sub.members];newMembers[memberIdx]=member;
-  setSyncing();await updateDoc(doc(db,'subscriptions',subId),{members:newMembers});setSynced();
+  setSyncing();
+  await updateDoc(doc(db,'subscriptions',subId),{members:newMembers});
+  setSynced();
+  await logAudit('sub',`${clients.find(c=>c.id===clientId)?.name||clientId} — ${sub.name} — ${curStatus==='pending'?'Pagado hasta':'Desmarcado desde'} ${MONTH_NAMES[month]} ${year}`);
   renderMonthPills({...sub,members:newMembers},member,subId,clientId);
 };
 window.toggleAnnualDates=function(){
@@ -1925,13 +2039,31 @@ window.openEditSub=function(id){
 };
 function renderMembersChecklist(existingMembers){
   const el=document.getElementById('members-checklist');
-  const appClients=clients.filter(c=>c.appShared);
+  const appClients=[...clients.filter(c=>c.appShared)].sort((a,b)=>a.name.localeCompare(b.name,'es'));
   if(!appClients.length){el.innerHTML='<div style="font-size:12px;color:var(--gris);padding:10px">Sin clientes con App activada.</div>';return;}
   el.innerHTML=appClients.map(c=>{
     const existing=existingMembers.find(m=>m.clientId===c.id);
-    return `<label class="member-check-row"><input type="checkbox" value="${c.id}" ${existing?'checked':''}><span class="member-check-name">${c.name}</span></label>`;
+    const paidUntil=existing?.paidUntil||'';
+    return `<div class="member-check-row" style="flex-wrap:wrap;gap:4px">
+      <input type="checkbox" value="${c.id}" id="mc-${c.id}" ${existing?'checked':''} onchange="toggleMemberDate('${c.id}')">
+      <label for="mc-${c.id}" class="member-check-name" style="flex:1;min-width:100px">${c.name}</label>
+      <div id="mc-date-${c.id}" style="display:${existing?'flex':'none'};align-items:center;gap:4px;margin-left:auto">
+        <span style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px">Pagado hasta:</span>
+        <input type="month" value="${paidUntil}" id="mc-until-${c.id}" 
+          style="border:1px solid var(--crema-dark);border-radius:6px;padding:3px 7px;font-size:11px;font-family:'DM Mono',monospace;color:var(--marino);outline:none;background:#fff;"
+          onchange="updateMemberUntil('${c.id}')">
+      </div>
+    </div>`;
   }).join('');
 }
+window.toggleMemberDate=function(clientId){
+  const cb=document.getElementById('mc-'+clientId);
+  const dateWrap=document.getElementById('mc-date-'+clientId);
+  dateWrap.style.display=cb.checked?'flex':'none';
+};
+window.updateMemberUntil=function(clientId){
+  // just UI, value read on save
+};
 window.handleSubLogoUpload=function(e){
   const file=e.target.files[0];if(!file)return;
   openCropper(file,'circle',b64=>{
@@ -1951,7 +2083,13 @@ window.saveSub=async function(){
   if(checked.length>slots){showToast(`Máximo ${slots} miembros para esta plataforma`,'error');return;}
   const existingSub=id?subscriptions.find(x=>x.id===id):null;
   const existingMembers=existingSub?existingSub.members||[]:[];
-  const members=checked.map(clientId=>{const existing=existingMembers.find(m=>m.clientId===clientId);return existing||{clientId,payments:{}};});
+  const members=checked.map(clientId=>{
+    const existing=existingMembers.find(m=>m.clientId===clientId);
+    const untilEl=document.getElementById('mc-until-'+clientId);
+    const paidUntil=untilEl?untilEl.value:(existing?.paidUntil||'');
+    const payments=buildPaymentsFromUntil(paidUntil,existing?.payments||{});
+    return{clientId,paidUntil,payments};
+  });
   setSyncing();
   const startDate=document.getElementById('msub-start').value;const endDate=document.getElementById('msub-end').value;const data={name,price,slots,cycle,logo:currentSubLogoB64,members,startDate:startDate||'',endDate:endDate||''};
   if(id){await updateDoc(doc(db,'subscriptions',id),data);showToast(`${name} actualizado`,'success');}
@@ -2051,41 +2189,6 @@ window.toggleSection=function(id){
   sectionStates[id]=!isCollapsed;
 };
 
-// ── SMART SUBSCRIPTION MONTH MARKING ──
-// Override cycleMonthStatus to cascade previous months and handle advance→paid on current month
-const _origCycleMonth=window.cycleMonthStatus;
-window.cycleMonthStatus=async function(subId,clientId,year,month){
-  const sub=subscriptions.find(x=>x.id===subId);
-  const memberIdx=sub.members.findIndex(m=>m.clientId===clientId);
-  if(memberIdx===-1)return;
-  const member={...sub.members[memberIdx]};
-  const payments={...member.payments||{}};
-  const key=`${year}-${month}`;
-  const cur=payments[key]||'pending';
-  // Cycle: pending→paid, paid→advance, advance→pending
-  const next={pending:'paid',paid:'advance',advance:'pending'}[cur];
-  payments[key]=next;
-
-  // If marking as paid: also mark all previous months as paid
-  if(next==='paid'){
-    const now=new Date();
-    for(let y=year-2;y<=year;y++){
-      for(let m=0;m<12;m++){
-        if(y>year||(y===year&&m>=month)) break;
-        const pk=`${y}-${m}`;
-        if(!payments[pk]||payments[pk]==='pending') payments[pk]='paid';
-      }
-    }
-  }
-  member.payments=payments;
-  const newMembers=[...sub.members];newMembers[memberIdx]=member;
-  setSyncing();
-  await updateDoc(doc(db,'subscriptions',subId),{members:newMembers});
-  setSynced();
-  await logAudit('sub',`${clients.find(c=>c.id===clientId)?.name||clientId} — ${sub.name} — ${MONTH_NAMES[month]} ${year}: ${next}`);
-  renderMonthPills({...sub,members:newMembers},member,subId,clientId);
-};
-
 // Check advance→paid confirmations on load
 async function checkAdvanceConfirmations(){
   const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
@@ -2112,6 +2215,18 @@ async function checkAdvanceConfirmations(){
     }
   }
 }
+
+
+// ── INVENTORY VIEW MODE ──
+let invViewMode='list';
+window.setInvView=function(mode){
+  invViewMode=mode;
+  document.getElementById('inv-view-grid').classList.toggle('active',mode==='grid');
+  document.getElementById('inv-view-list').classList.toggle('active',mode==='list');
+  document.getElementById('inv-grid-wrap').style.display=mode==='grid'?'grid':'none';
+  document.getElementById('inv-table-wrap').style.display=mode==='list'?'block':'none';
+  renderInventario();
+};
 
 </script>
 </body>
