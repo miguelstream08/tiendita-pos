@@ -233,6 +233,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 .month-pill.paid{background:#d1fae5;color:#065f46;border-color:#86efac;}
 .month-pill.advance{background:#dbeafe;color:#1e40af;border-color:#93c5fd;}
 .month-pill.current{border-color:var(--rojo);box-shadow:0 0 0 2px rgba(200,16,46,.2);}
+.sort-btn{background:#fff;border:2px solid var(--crema-dark);border-radius:7px;padding:4px 10px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--gris);cursor:pointer;transition:all .2s;}
+.sort-btn:hover{border-color:var(--marino);color:var(--marino);}
+.sort-btn.active{background:var(--marino);border-color:var(--marino);color:#fff;}
+.product-list-row{background:#fff;border-radius:10px;border:2px solid transparent;display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;transition:all .18s;}
+.product-list-row:hover{border-color:var(--rojo);box-shadow:0 3px 12px rgba(200,16,46,.12);}
+.product-list-row.low-stock{border-color:var(--naranja);}
+.product-list-row.out-stock{opacity:.4;pointer-events:none;}
+.plr-img{width:40px;height:40px;border-radius:8px;background:var(--gris-light);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.plr-img img{width:100%;height:100%;object-fit:cover;}
+.plr-img svg{width:20px;height:20px;stroke:var(--gris);}
+.plr-name{flex:1;font-size:13px;font-weight:600;}
+.plr-cat{font-size:11px;color:var(--gris);}
+.plr-price{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--rojo);flex-shrink:0;}
+.plr-stock{font-size:11px;padding:2px 8px;border-radius:10px;flex-shrink:0;}
+.products-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;}
+.products-list::-webkit-scrollbar{width:3px;}
+.audit-row{padding:8px 0;border-bottom:1px solid var(--crema-dark);display:flex;gap:10px;align-items:flex-start;}
+.audit-row:last-child{border-bottom:none;}
+.audit-type{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;text-transform:uppercase;letter-spacing:.5px;}
+.audit-type.venta{background:#d1fae5;color:#065f46;}
+.audit-type.pago{background:#dbeafe;color:#1e40af;}
+.audit-type.sub{background:#ede9fe;color:#5b21b6;}
+.audit-type.credito{background:#fef3c7;color:#92400e;}
+.audit-type.borrado{background:#fee2e2;color:#991b1b;}
+.audit-info{flex:1;}
+.audit-desc{font-size:12px;font-weight:500;}
+.audit-date{font-size:10px;color:var(--gris);font-family:'DM Mono',monospace;}
 .slots-bar{display:flex;gap:4px;margin:8px 0 4px;flex-wrap:wrap;}
 .slot-dot{width:12px;height:12px;border-radius:50%;transition:all .2s;}
 .slot-dot.used{background:var(--rojo);}
@@ -436,6 +463,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   .topbar-nav{gap:1px;}
   .topnav-btn{padding:5px 7px;font-size:11px;}
 }
+
+/* ── MOBILE NAV ── */
+.mob-menu-btn{display:none;background:transparent;border:none;color:var(--crema);cursor:pointer;padding:4px;flex-shrink:0;}
+.mob-nav-dropdown{display:none;position:fixed;top:54px;left:0;right:0;background:var(--marino);z-index:50;flex-direction:column;padding:8px;gap:2px;box-shadow:0 8px 24px rgba(12,35,64,.4);}
+.mob-nav-dropdown.open{display:flex;}
+.mob-nav-btn{background:transparent;border:none;color:rgba(245,240,232,.7);padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;text-align:left;border-radius:8px;display:flex;align-items:center;gap:10px;}
+.mob-nav-btn:hover,.mob-nav-btn.active{background:var(--rojo);color:#fff;}
+.mob-nav-btn svg{width:16px;height:16px;stroke-width:2;flex-shrink:0;}
+
+/* ── COLLAPSIBLE SECTIONS ── */
+.collapsible-section{}
+.collapsible-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:2px 0 10px;}
+.collapsible-header:hover .collapse-icon{stroke:var(--rojo);}
+.collapse-icon{width:18px;height:18px;stroke:var(--gris);transition:transform .3s ease;flex-shrink:0;}
+.collapsible-body{overflow:hidden;transition:max-height .35s ease;max-height:2000px;}
+.collapsible-body.collapsed{max-height:0;}
+.collapse-icon.collapsed{transform:rotate(180deg);}
+
+/* ── VIEW TOGGLE BUTTONS (per section) ── */
+.view-toggle{display:flex;gap:4px;margin-left:auto;}
+.view-toggle-btn{background:var(--gris-light);border:none;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--gris);}
+.view-toggle-btn svg{width:14px;height:14px;stroke-width:2;}
+.view-toggle-btn.active{background:var(--marino);color:#fff;}
+
+@media(max-width:768px){
+  .mob-menu-btn{display:flex;}
+  #topbar-nav{display:none !important;}
+  .mob-nav-dropdown{display:none;}
+  .mob-nav-dropdown.open{display:flex;}
+}
 </style>
 </head>
 <body>
@@ -464,7 +521,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
     <div class="topbar-logo-img" id="topbar-logo-img">T<img id="topbar-logo-img-el" src="" style="display:none"></div>
     <div class="topbar-name" id="topbar-name">LA <span>TIENDITA</span></div>
   </div>
-  <div class="topbar-nav">
+  <button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleMobMenu()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="mob-nav-dropdown" id="mob-nav-dropdown"></div>
+  <div class="topbar-nav" id="topbar-nav">
     <button class="topnav-btn active" id="btn-pos" onclick="switchView('pos',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Venta</button>
     <button class="topnav-btn" id="btn-clientes" onclick="switchView('clientes',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes</button>
     <button class="topnav-btn" id="btn-inventario" onclick="switchView('inventario',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Inventario</button>
@@ -472,6 +533,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
     <button class="topnav-btn locked" id="btn-dashboard" onclick="requireAuth('dashboard',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Dashboard</button>
     <button class="topnav-btn" id="btn-suscripciones" onclick="switchView('suscripciones',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Suscripciones</button>
     <button class="topnav-btn" id="btn-ajustes" onclick="switchView('ajustes',this)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Ajustes</button>
+    <button class="topnav-btn" id="btn-bitacora" onclick="openModal('modal-audit')"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Bitácora</button>
   </div>
   <div class="topbar-right">
     <div class="sync-dot" id="sync-dot"></div>
@@ -492,6 +554,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       </div>
     </div>
     <div class="categories" id="categories"></div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div style="font-size:11px;color:var(--gris);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Ordenar:</div>
+      <button class="sort-btn active" id="sort-cat" onclick="setSort('cat')">Categoría</button>
+      <button class="sort-btn" id="sort-alpha" onclick="setSort('alpha')">A–Z</button>
+      <button class="sort-btn" id="sort-price-asc" onclick="setSort('price-asc')">Precio ↑</button>
+      <button class="sort-btn" id="sort-price-desc" onclick="setSort('price-desc')">Precio ↓</button>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <button class="sort-btn" id="view-grid-btn" onclick="setViewMode('grid')" title="Grid">▦</button>
+        <button class="sort-btn" id="view-list-btn" onclick="setViewMode('list')" title="Lista">☰</button>
+      </div>
+    </div>
     <div class="products-grid" id="products-grid"></div>
   </div>
   <div class="order-panel">
@@ -579,13 +652,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       Nuevo Producto
     </button>
   </div>
-  <div class="inv-table"><table><thead><tr><th></th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="inv-tbody"></tbody></table></div>
+  <div class="inv-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:600px"><thead><tr><th></th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="inv-tbody"></tbody></table></div>
 </div>
 
 <!-- VENTAS -->
 <div class="view" id="view-ventas">
   <div class="section-header"><div class="section-title">HISTORIAL DE VENTAS</div></div>
-  <div class="sales-table"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Tipo</th><th>Método</th><th>Estado</th><th></th><th></th></tr></thead><tbody id="sales-tbody"></tbody></table></div>
+  <div class="sales-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:700px"><thead><tr><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Tipo</th><th>Método</th><th>Estado</th><th></th><th></th></tr></thead><tbody id="sales-tbody"></tbody></table></div>
 </div>
 
 <!-- DASHBOARD -->
@@ -616,21 +689,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
         <div class="rec-am">Falta: <span id="rec-falta">$0</span></div>
       </div>
     </div>
-    <div class="alerts-section">
-      <div class="section-title" style="font-size:17px;margin-bottom:9px">ALERTAS</div>
-      <div id="alerts-list"></div>
+    <div class="alerts-section collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('sec-alerts')">
+        <div class="section-title" style="font-size:17px">ALERTAS</div>
+        <svg class="collapse-icon" id="sec-alerts-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+      </div>
+      <div class="collapsible-body" id="sec-alerts"><div id="alerts-list"></div></div>
     </div>
-    <div class="alerts-section">
-      <div class="rec-header"><div class="rec-title">LO MÁS VENDIDO</div><div style="font-size:11px;color:var(--gris)">Por unidades</div></div>
-      <div id="stats-top"></div>
+    <div class="alerts-section collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('sec-top')">
+        <div class="rec-title">LO MÁS VENDIDO</div>
+        <svg class="collapse-icon" id="sec-top-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+      </div>
+      <div class="collapsible-body" id="sec-top"><div id="stats-top"></div></div>
     </div>
-    <div class="alerts-section">
-      <div class="rec-header"><div class="rec-title">LO MENOS VENDIDO</div><div style="font-size:11px;color:var(--gris)">Considera descontinuar</div></div>
-      <div id="stats-bottom"></div>
+    <div class="alerts-section collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('sec-bottom')">
+        <div class="rec-title">LO MENOS VENDIDO</div>
+        <svg class="collapse-icon" id="sec-bottom-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+      </div>
+      <div class="collapsible-body" id="sec-bottom"><div id="stats-bottom"></div></div>
     </div>
-    <div class="alerts-section">
-      <div class="rec-header"><div class="rec-title">VENTAS POR CLIENTE</div></div>
-      <div id="stats-clients"></div>
+    <div class="alerts-section collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('sec-clients')">
+        <div class="rec-title">VENTAS POR CLIENTE</div>
+        <svg class="collapse-icon" id="sec-clients-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+      </div>
+      <div class="collapsible-body" id="sec-clients"><div id="stats-clients"></div></div>
     </div>
   </div>
 </div>
@@ -842,10 +927,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
     </div>
     <div class="modal-field">
       <div class="modal-label">Ciclo</div>
-      <select class="modal-select" id="msub-cycle">
+      <select class="modal-select" id="msub-cycle" onchange="toggleAnnualDates()">
         <option value="mensual">Mensual</option>
         <option value="anual">Anual</option>
       </select>
+    </div>
+    <div id="annual-dates-wrap" style="display:none">
+      <div style="display:flex;gap:8px">
+        <div class="modal-field" style="flex:1"><div class="modal-label">Fecha de inicio</div><input class="modal-input" type="date" id="msub-start"></div>
+        <div class="modal-field" style="flex:1"><div class="modal-label">Fecha de vencimiento</div><input class="modal-input" type="date" id="msub-end"></div>
+      </div>
     </div>
     <div class="modal-field">
       <div class="modal-label">Miembros (solo clientes con App activada)</div>
@@ -879,6 +970,39 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       <button class="crop-btn-cancel" onclick="cancelCrop()">Cancelar</button>
       <button class="crop-btn-confirm" onclick="confirmCrop()">Usar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL AUDIT LOG -->
+<div class="modal-overlay" id="modal-audit">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">REGISTRO DE MOVIMIENTOS</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="sort-btn active" id="audit-filter-all" onclick="filterAudit('all')">Todos</button>
+      <button class="sort-btn" id="audit-filter-venta" onclick="filterAudit('venta')">Ventas</button>
+      <button class="sort-btn" id="audit-filter-pago" onclick="filterAudit('pago')">Pagos</button>
+      <button class="sort-btn" id="audit-filter-sub" onclick="filterAudit('sub')">Suscripciones</button>
+      <button class="sort-btn" id="audit-filter-credito" onclick="filterAudit('credito')">Saldo a favor</button>
+    </div>
+    <div id="audit-list" style="max-height:55vh;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:12px"><button class="btn-cancel" onclick="closeModal('modal-audit')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL ABONAR (saldo a favor) -->
+<div class="modal-overlay" id="modal-abonar">
+  <div class="modal">
+    <div class="modal-title" id="mabonar-title">REGISTRAR SALDO A FAVOR</div>
+    <div style="font-size:13px;color:var(--gris);margin-bottom:14px" id="mabonar-info"></div>
+    <div class="modal-field"><div class="modal-label">Monto a abonar ($)</div><input class="modal-input" type="number" id="monto-abonar" placeholder="0.00" min="0" step="0.5"></div>
+    <div class="modal-field"><div class="modal-label">Método</div>
+      <select class="modal-select" id="metodo-abonar">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modal-abonar')">Cancelar</button><button class="btn-confirm" onclick="confirmarAbonar()">Guardar</button></div>
   </div>
 </div>
 
@@ -1084,7 +1208,7 @@ function updateBrand(){
 
 async function init(){
   document.getElementById('loading-sub').textContent='Conectando con Firebase...';
-  try{await seedIfEmpty();await seedSubsIfEmpty();startListeners();setSynced();}catch(e){setSyncError();showToast('Error de conexión','error');}
+  try{await seedIfEmpty();await seedSubsIfEmpty();startListeners();setSynced();setTimeout(checkAdvanceConfirmations,3000);}catch(e){setSyncError();showToast('Error de conexión','error');}
   document.getElementById('loading-screen').classList.add('hidden');
 }
 init();
@@ -1111,22 +1235,119 @@ window.selectCat=function(cat){currentCat=cat;renderCategories();renderProducts(
 
 // PRODUCTS
 const PROD_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
+let currentSort='cat';
+let currentViewMode='grid';
+window.setSort=function(s){
+  currentSort=s;
+  document.querySelectorAll('.sort-btn[id^="sort-"]').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('sort-'+s);if(el)el.classList.add('active');
+  renderProducts();
+};
+window.setViewMode=function(mode){
+  currentViewMode=mode;
+  const gEl=document.getElementById('products-grid');
+  if(mode==='grid'){gEl.className='products-grid';}
+  else{gEl.className='products-list';}
+  document.getElementById('view-grid-btn').classList.toggle('active',mode==='grid');
+  document.getElementById('view-list-btn').classList.toggle('active',mode==='list');
+  renderProducts();
+};
+function sortedProducts(list){
+  const s=[...list];
+  if(currentSort==='alpha') return s.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  if(currentSort==='price-asc') return s.sort((a,b)=>a.price-b.price);
+  if(currentSort==='price-desc') return s.sort((a,b)=>b.price-a.price);
+  return s.sort((a,b)=>a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));
+}
 function renderProducts(){
   const s=document.getElementById('search-input').value.toLowerCase();
-  const f=products.filter(p=>(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
+  const filtered=products.filter(p=>(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
+  const f=sortedProducts(filtered);
   const el=document.getElementById('products-grid');
   if(!f.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px;grid-column:1/-1">Sin productos</div>';return;}
-  el.innerHTML=f.map(p=>{
-    const sc=p.stock===0?'out-stock':(p.stock<=p.minStock?'low-stock':'');
-    const sb=p.stock===0?'sb-out':(p.stock<=p.minStock?'sb-low':'sb-ok');
-    const st=p.stock===0?'Sin stock':(p.stock<=p.minStock?`Stock bajo: ${p.stock}`:`Stock: ${p.stock}`);
-    const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
-    return `<div class="product-card ${sc}" onclick="addToOrder('${p.id}')">
-      <div class="product-img-wrap">${img}</div>
-      <div class="product-info"><div class="product-name">${p.name}</div><div class="product-price">$${p.price.toFixed(2)}</div><div class="product-stock-badge ${sb}">${st}</div></div>
-    </div>`;
-  }).join('');
+  if(currentViewMode==='list'){
+    el.className='products-list';
+    el.innerHTML=f.map(p=>{
+      const sc=p.stock===0?'out-stock':(p.stock<=p.minStock?'low-stock':'');
+      const sb=p.stock===0?'sb-out':(p.stock<=p.minStock?'sb-low':'sb-ok');
+      const st=p.stock===0?'Sin stock':(p.stock<=p.minStock?`Bajo: ${p.stock}`:`${p.stock} uds`);
+      const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
+      return `<div class="product-list-row ${sc}" onclick="addToOrder('${p.id}')">
+        <div class="plr-img">${img}</div>
+        <div style="flex:1"><div class="plr-name">${p.name}</div><div class="plr-cat">${p.cat}</div></div>
+        <div class="plr-price">$${p.price.toFixed(2)}</div>
+        <div class="plr-stock ${sb}">${st}</div>
+      </div>`;
+    }).join('');
+  } else {
+    el.className='products-grid';
+    el.innerHTML=f.map(p=>{
+      const sc=p.stock===0?'out-stock':(p.stock<=p.minStock?'low-stock':'');
+      const sb=p.stock===0?'sb-out':(p.stock<=p.minStock?'sb-low':'sb-ok');
+      const st=p.stock===0?'Sin stock':(p.stock<=p.minStock?`Stock bajo: ${p.stock}`:`Stock: ${p.stock}`);
+      const img=p.photo?`<img src="${p.photo}">`:`${PROD_ICON}`;
+      return `<div class="product-card ${sc}" onclick="addToOrder('${p.id}')">
+        <div class="product-img-wrap">${img}</div>
+        <div class="product-info"><div class="product-name">${p.name}</div><div class="product-price">$${p.price.toFixed(2)}</div><div class="product-stock-badge ${sb}">${st}</div></div>
+      </div>`;
+    }).join('');
+  }
 }
+
+// ── AUDIT LOG ──
+let auditLogs=[];
+let auditFilter='all';
+onSnapshot(query(collection(db,'audit'),orderBy('createdAt','desc')),snap=>{
+  auditLogs=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(document.getElementById('modal-audit').classList.contains('open')) renderAudit();
+},()=>{});
+async function logAudit(type,desc){
+  try{await addDoc(collection(db,'audit'),{type,desc,date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});}catch(e){}
+}
+window.filterAudit=function(f){
+  auditFilter=f;
+  document.querySelectorAll('[id^="audit-filter-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('audit-filter-'+f).classList.add('active');
+  renderAudit();
+};
+function renderAudit(){
+  const el=document.getElementById('audit-list');if(!el)return;
+  const filtered=auditFilter==='all'?auditLogs:auditLogs.filter(a=>a.type===auditFilter);
+  if(!filtered.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:10px 0">Sin movimientos registrados</div>';return;}
+  el.innerHTML=filtered.map(a=>`
+    <div class="audit-row">
+      <div class="audit-type ${a.type}">${a.type}</div>
+      <div class="audit-info"><div class="audit-desc">${a.desc}</div><div class="audit-date">${a.date||''}</div></div>
+    </div>`).join('');
+}
+const _origOpenModal=window.openModal;
+window.openModal=function(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='modal-audit') renderAudit();
+};
+
+// ── SALDO A FAVOR ──
+let abonarClientId=null;
+window.openAbonar=function(clientId){
+  abonarClientId=clientId;
+  const c=clients.find(x=>x.id===clientId);
+  document.getElementById('mabonar-title').textContent=`SALDO A FAVOR — ${c.name}`;
+  document.getElementById('mabonar-info').textContent=`Saldo actual a favor: $${(c.credit||0).toFixed(2)}`;
+  document.getElementById('monto-abonar').value='';
+  openModal('modal-abonar');
+};
+window.confirmarAbonar=async function(){
+  const monto=parseFloat(document.getElementById('monto-abonar').value);
+  const method=document.getElementById('metodo-abonar').value;
+  if(!monto||monto<=0){showToast('Ingresa un monto válido','error');return;}
+  const c=clients.find(x=>x.id===abonarClientId);
+  setSyncing();
+  const newCredit=(c.credit||0)+monto;
+  await updateDoc(doc(db,'clients',abonarClientId),{credit:newCredit});
+  await logAudit('credito',`${c.name} — Saldo a favor $${monto.toFixed(2)} via ${method}. Total acumulado: $${newCredit.toFixed(2)}`);
+  setSynced();closeModal('modal-abonar');
+  showToast(`$${monto.toFixed(2)} registrado a favor de ${c.name}`,'success');
+};
 window.addToOrder=function(prodId){
   const prod=products.find(p=>p.id===prodId);
   if(!prod||prod.stock===0)return;
@@ -1190,14 +1411,21 @@ window.checkout=async function(){
     for(const o of order){const prod=products.find(p=>p.id===o.prodId);await updateDoc(doc(db,'products',o.prodId),{stock:prod.stock-o.qty});}
     await addDoc(collection(db,'sales'),{clientId,clientName:client.name,items,total,payMode,payMethod,paid:payMode==='inmediato',createdAt:serverTimestamp(),date:new Date().toLocaleString('es-MX')});
     if(payMode!=='inmediato')await updateDoc(doc(db,'clients',clientId),{debt:(client.debt||0)+total});
-    clearOrder();setSynced();showToast(`Venta $${total.toFixed(2)} registrada`,'success');
+    clearOrder();setSynced();
+    await logAudit('venta',`${client.name} — $${total.toFixed(2)} (${payMode}, ${payMethod}) — ${items.map(i=>`${i.name}×${i.qty}`).join(', ')}`);
+    if((client.credit||0)>0) showToast(`★ ${client.name} tiene $${(client.credit||0).toFixed(2)} de saldo a favor`,'success');
+    else showToast(`Venta $${total.toFixed(2)} registrada`,'success');
   }catch(e){setSyncError();showToast('Error al registrar','error');}
 };
 
 // CLIENTS
 function populateClientSelect(){
   const sel=document.getElementById('order-client');const cur=sel.value;
-  sel.innerHTML='<option value="">— Seleccionar cliente —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const tiendaClients=[...clients]
+    .filter(c=>!c.clientType||c.clientType==='tiendita'||c.clientType==='ambos')
+    .sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  sel.innerHTML='<option value="">— Seleccionar cliente —</option>'+
+    tiendaClients.map(c=>`<option value="${c.id}">${c.name}${(c.credit||0)>0?' ★':''}</option>`).join('');
   if(cur)sel.value=cur;
 }
 const USER_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
@@ -1207,7 +1435,12 @@ const PAY_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill
 function renderClients(){
   const makeCard=(c)=>{
     const hd=(c.debt||0)>0;
-    const av=c.photo?`<img src="${c.photo}">`:`${USER_ICON}`;
+    const initials=c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const colors=['#C8102E','#0C2340','#2a5298','#d97706','#16a34a','#7c3aed','#0891b2'];
+    const colorIdx=c.name.charCodeAt(0)%colors.length;
+    const av=c.photo
+      ?`<img src="${c.photo}">`
+      :`<div style="width:100%;height:100%;background:${colors[colorIdx]};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:16px;color:#fff;letter-spacing:1px">${initials}</div>`;
     const appShared=c.appShared||false;
     const type=c.clientType||(appShared?'ambos':'tiendita');
     const cl={semanal:'Semanal',mensual:'Mensual',inmediato:'Inmediato'}[c.cycle]||c.cycle;
@@ -1220,10 +1453,12 @@ function renderClients(){
       <div class="cc-top"><div class="cc-avatar">${av}</div><div><div class="cc-name">${c.name}</div>${cycleDisplay}</div>${appShared?`<div class="cc-app-badge">App</div>`:''}</div>
       <div class="cc-debt-label">Saldo pendiente</div>
       <div class="cc-debt-val ${!hd?'zero':''}">${hd?'$'+(c.debt||0).toFixed(2):'Al día'}</div>
+      ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
       <div class="cc-actions">
         <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
         <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
         ${hd?`<button class="cc-btn pay" onclick="openPago('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
+        <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
         <button class="cc-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))">${DEL_ICON}</button>
       </div>
       <div class="cc-app-toggle">
@@ -1471,6 +1706,7 @@ window.markPaid=async function(saleId,total,clientId){
   const c=clients.find(x=>x.id===clientId);
   if(c)await updateDoc(doc(db,'clients',clientId),{debt:Math.max(0,(c.debt||0)-total)});
   setSynced();showToast('Marcada como pagada','success');
+  await logAudit('pago',`Venta #${saleId} marcada como pagada — ${sales.find(x=>x.id===saleId)?.clientName||''} $${total.toFixed(2)}`);
 };
 window.deleteSale=async function(saleId,total,clientId,wasPaid){
   setSyncing();
@@ -1488,6 +1724,7 @@ window.deleteSale=async function(saleId,total,clientId,wasPaid){
     if(c) await updateDoc(doc(db,'clients',clientId),{debt:Math.max(0,(c.debt||0)-total)});
   }
   await deleteDoc(doc(db,'sales',saleId));
+  await logAudit('borrado',`Venta eliminada — ${sale?.clientName||''} $${total.toFixed(2)} — ${(sale?.items||[]).map(i=>`${i.name}×${i.qty}`).join(', ')}`);
   setSynced();showToast('Venta eliminada y stock restaurado','success');
 };
 
@@ -1600,6 +1837,8 @@ function renderSubsGrid(){
     const members=sub.members||[];const slots=sub.slots||6;const used=members.length;const free=Math.max(0,slots-used);
     const logo=sub.logo?`<img src="${sub.logo}">`:`${SUB_ICON}`;
     const cycleLabel=sub.cycle==='anual'?'Anual':'Mensual';
+    const dateInfo=sub.cycle==='anual'&&(sub.startDate||sub.endDate)?
+      `<div style="font-size:10px;color:var(--gris);margin-top:2px">${sub.startDate?'Inicio: '+sub.startDate:''} ${sub.endDate?'· Vence: '+sub.endDate:''}</div>`:'';
     const priceLabel=sub.cycle==='anual'?`$${sub.price}/año`:`$${sub.price}/mes`;
     const dots=[...Array(slots)].map((_,i)=>`<div class="slot-dot ${i<used?'used':'free'}"></div>`).join('');
     const memberRows=members.map(m=>{
@@ -1616,7 +1855,7 @@ function renderSubsGrid(){
     const paidNow=members.filter(m=>['paid','advance'].includes(getMemberMonthStatus(m,curYear,curMonth))).length;
     return `<div class="sub-card">
       <div class="sub-card-header"><div class="sub-logo">${logo}</div>
-        <div style="flex:1"><div class="sub-name">${sub.name}</div><div class="sub-price">${priceLabel} · ${cycleLabel}</div></div>
+        <div style="flex:1"><div class="sub-name">${sub.name}</div><div class="sub-price">${priceLabel} · ${cycleLabel}</div>${dateInfo}</div>
       </div>
       <div class="slots-bar">${dots}</div>
       <div class="sub-slots-info"><strong>${used}/${slots}</strong> espacios · <strong style="color:var(--verde)">${free}</strong> libre${free!==1?'s':''}</div>
@@ -1660,11 +1899,15 @@ window.cycleMonthStatus=async function(subId,clientId,year,month){
   setSyncing();await updateDoc(doc(db,'subscriptions',subId),{members:newMembers});setSynced();
   renderMonthPills({...sub,members:newMembers},member,subId,clientId);
 };
+window.toggleAnnualDates=function(){
+  const cycle=document.getElementById('msub-cycle').value;
+  document.getElementById('annual-dates-wrap').style.display=cycle==='anual'?'block':'none';
+};
 window.openAddSub=function(){
   document.getElementById('msub-title').textContent='NUEVA PLATAFORMA';
   document.getElementById('msub-id').value='';document.getElementById('msub-name').value='';
   document.getElementById('msub-price').value='';document.getElementById('msub-slots').value='';
-  document.getElementById('msub-cycle').value='mensual';currentSubLogoB64='';
+  document.getElementById('msub-cycle').value='mensual';document.getElementById('annual-dates-wrap').style.display='none';document.getElementById('msub-start').value='';document.getElementById('msub-end').value='';currentSubLogoB64='';
   document.getElementById('sub-logo-preview').src='';document.getElementById('sub-logo-preview').style.display='none';
   document.getElementById('sub-logo-upload').querySelector('svg').style.display='block';
   document.getElementById('sub-logo-file').value='';renderMembersChecklist([]);openModal('modal-sub');
@@ -1674,7 +1917,7 @@ window.openEditSub=function(id){
   document.getElementById('msub-title').textContent='EDITAR PLATAFORMA';
   document.getElementById('msub-id').value=id;document.getElementById('msub-name').value=sub.name;
   document.getElementById('msub-price').value=sub.price;document.getElementById('msub-slots').value=sub.slots||6;
-  document.getElementById('msub-cycle').value=sub.cycle||'mensual';currentSubLogoB64=sub.logo||'';
+  document.getElementById('msub-cycle').value=sub.cycle||'mensual';document.getElementById('annual-dates-wrap').style.display=sub.cycle==='anual'?'block':'none';document.getElementById('msub-start').value=sub.startDate||'';document.getElementById('msub-end').value=sub.endDate||'';currentSubLogoB64=sub.logo||'';
   const slp=document.getElementById('sub-logo-preview');
   if(currentSubLogoB64){slp.src=currentSubLogoB64;slp.style.display='block';document.getElementById('sub-logo-upload').querySelector('svg').style.display='none';}
   else{slp.style.display='none';document.getElementById('sub-logo-upload').querySelector('svg').style.display='block';}
@@ -1710,7 +1953,7 @@ window.saveSub=async function(){
   const existingMembers=existingSub?existingSub.members||[]:[];
   const members=checked.map(clientId=>{const existing=existingMembers.find(m=>m.clientId===clientId);return existing||{clientId,payments:{}};});
   setSyncing();
-  const data={name,price,slots,cycle,logo:currentSubLogoB64,members};
+  const startDate=document.getElementById('msub-start').value;const endDate=document.getElementById('msub-end').value;const data={name,price,slots,cycle,logo:currentSubLogoB64,members,startDate:startDate||'',endDate:endDate||''};
   if(id){await updateDoc(doc(db,'subscriptions',id),data);showToast(`${name} actualizado`,'success');}
   else{await addDoc(collection(db,'subscriptions'),{...data,createdAt:serverTimestamp()});showToast(`${name} agregado`,'success');}
   setSynced();currentSubLogoB64='';closeModal('modal-sub');
@@ -1757,6 +2000,119 @@ window.showToast=function(msg,type=''){
   const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='toast',2600);
 };
+
+// ── MOBILE NAV ──
+const MOB_NAV_ITEMS = [
+  {id:'pos', label:'Venta', icon:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>'},
+  {id:'clientes', label:'Clientes', icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'},
+  {id:'inventario', label:'Inventario', icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>'},
+  {id:'ventas', label:'Ventas', icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'},
+  {id:'dashboard', label:'Dashboard', icon:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>', protected:true},
+  {id:'suscripciones', label:'Suscripciones', icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'},
+  {id:'ajustes', label:'Ajustes', icon:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'},
+];
+let currentMobView='pos';
+function buildMobNav(){
+  const dd=document.getElementById('mob-nav-dropdown');
+  dd.innerHTML=MOB_NAV_ITEMS.map(item=>`
+    <button class="mob-nav-btn ${currentMobView===item.id?'active':''}" onclick="mobNavGo('${item.id}')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">${item.icon}</svg>
+      ${item.label}
+    </button>`).join('');
+}
+window.toggleMobMenu=function(){
+  const dd=document.getElementById('mob-nav-dropdown');
+  buildMobNav();
+  dd.classList.toggle('open');
+};
+window.mobNavGo=function(view){
+  currentMobView=view;
+  document.getElementById('mob-nav-dropdown').classList.remove('open');
+  const btn=document.getElementById('btn-'+view);
+  if(view==='dashboard'&&!currentUser){requireAuth('dashboard',btn);return;}
+  switchView(view,btn||{classList:{add:()=>{},remove:()=>{}}});
+};
+// Close mob menu on outside click
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('mob-nav-dropdown');
+  const btn=document.getElementById('mob-menu-btn');
+  if(dd&&btn&&!dd.contains(e.target)&&!btn.contains(e.target)) dd.classList.remove('open');
+});
+
+// ── COLLAPSIBLE SECTIONS ──
+const sectionStates={};
+window.toggleSection=function(id){
+  const body=document.getElementById(id);
+  const icon=document.getElementById(id+'-icon');
+  if(!body)return;
+  const isCollapsed=body.classList.contains('collapsed');
+  if(isCollapsed){body.classList.remove('collapsed');icon&&icon.classList.remove('collapsed');}
+  else{body.classList.add('collapsed');icon&&icon.classList.add('collapsed');}
+  sectionStates[id]=!isCollapsed;
+};
+
+// ── SMART SUBSCRIPTION MONTH MARKING ──
+// Override cycleMonthStatus to cascade previous months and handle advance→paid on current month
+const _origCycleMonth=window.cycleMonthStatus;
+window.cycleMonthStatus=async function(subId,clientId,year,month){
+  const sub=subscriptions.find(x=>x.id===subId);
+  const memberIdx=sub.members.findIndex(m=>m.clientId===clientId);
+  if(memberIdx===-1)return;
+  const member={...sub.members[memberIdx]};
+  const payments={...member.payments||{}};
+  const key=`${year}-${month}`;
+  const cur=payments[key]||'pending';
+  // Cycle: pending→paid, paid→advance, advance→pending
+  const next={pending:'paid',paid:'advance',advance:'pending'}[cur];
+  payments[key]=next;
+
+  // If marking as paid: also mark all previous months as paid
+  if(next==='paid'){
+    const now=new Date();
+    for(let y=year-2;y<=year;y++){
+      for(let m=0;m<12;m++){
+        if(y>year||(y===year&&m>=month)) break;
+        const pk=`${y}-${m}`;
+        if(!payments[pk]||payments[pk]==='pending') payments[pk]='paid';
+      }
+    }
+  }
+  member.payments=payments;
+  const newMembers=[...sub.members];newMembers[memberIdx]=member;
+  setSyncing();
+  await updateDoc(doc(db,'subscriptions',subId),{members:newMembers});
+  setSynced();
+  await logAudit('sub',`${clients.find(c=>c.id===clientId)?.name||clientId} — ${sub.name} — ${MONTH_NAMES[month]} ${year}: ${next}`);
+  renderMonthPills({...sub,members:newMembers},member,subId,clientId);
+};
+
+// Check advance→paid confirmations on load
+async function checkAdvanceConfirmations(){
+  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
+  for(const sub of subscriptions){
+    for(const m of sub.members||[]){
+      const key=`${curYear}-${curMonth}`;
+      const status=(m.payments||{})[key];
+      if(status==='advance'){
+        const client=clients.find(c=>c.id===m.clientId);
+        const name=client?client.name:m.clientId;
+        const confirmado=confirm(`${name} tiene ${MONTH_NAMES[curMonth]} pagado por adelantado en ${sub.name}.
+¿Confirmar como pagado este mes?`);
+        if(confirmado){
+          const memberIdx=sub.members.findIndex(x=>x.clientId===m.clientId);
+          const member={...sub.members[memberIdx]};
+          const payments={...member.payments||{}};
+          payments[key]='paid';
+          member.payments=payments;
+          const newMembers=[...sub.members];newMembers[memberIdx]=member;
+          await updateDoc(doc(db,'subscriptions',sub.id),{members:newMembers});
+          await logAudit('sub',`${name} — ${sub.name} — ${MONTH_NAMES[curMonth]} ${curYear}: adelanto confirmado como pagado`);
+        }
+      }
+    }
+  }
+}
+
 </script>
 </body>
 </html>
