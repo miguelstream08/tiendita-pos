@@ -1138,6 +1138,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   </div>
 </div>
 
+<!-- MODAL CARGO MANUAL -->
+<div class="modal-overlay" id="modal-cargo">
+  <div class="modal">
+    <div class="modal-title" id="mcargo-title">AGREGAR CARGO</div>
+    <div style="font-size:13px;color:var(--gris);margin-bottom:14px" id="mcargo-info"></div>
+    <div class="modal-field">
+      <div class="modal-label">Concepto</div>
+      <input class="modal-input" type="text" id="cargo-concepto" placeholder="Ej: Préstamo, Antojo, Favor...">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Monto ($)</div>
+      <input class="modal-input" type="number" id="cargo-monto" placeholder="0.00" min="0" step="0.5">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-cargo')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarCargo()">Agregar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -1393,7 +1413,7 @@ function sortedProducts(list){
 }
 function renderProducts(){
   const s=document.getElementById('search-input').value.toLowerCase();
-  const filtered=products.filter(p=>(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
+  const filtered=products.filter(p=>p.visible!==false&&(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
   const f=sortedProducts(filtered);
   const el=document.getElementById('products-grid');
   if(!f.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px;grid-column:1/-1">Sin productos</div>';return;}
@@ -1640,6 +1660,7 @@ function makeClientListRow(c){
       <button class="clr-btn" onclick="openStatement('${c.id}')" title="Cuenta"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
       <button class="clr-btn" onclick="openEditCliente('${c.id}')" title="Editar">${EDIT_ICON}</button>
       ${hd?`<button class="clr-btn pay" onclick="openPago('${c.id}')" title="Cobrar">${PAY_ICON}</button>`:''}
+      <button class="clr-btn" style="background:#fef3c7;color:#92400e" onclick="openCargo('${c.id}')" title="Agregar cargo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
       <button class="clr-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))" title="Eliminar">${DEL_ICON}</button>
     </div>
   </div>`;
@@ -1767,10 +1788,13 @@ window.openStatement=function(clientId){
     document.getElementById('stmt-body').innerHTML='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin ventas registradas</div>';
   } else {
     document.getElementById('stmt-body').innerHTML=allSales.map(s=>{
-      const its=(s.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+      const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
       const statusColor=s.paid?'var(--verde)':'var(--rojo)';
+      const typeBadge=s.isCargo
+        ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
+        :'';
       return `<div class="stmt-row">
-        <div class="stmt-date">${s.date||''} · <span style="color:${statusColor};font-weight:600">${s.paid?'Pagado':'Pendiente'}</span></div>
+        <div class="stmt-date">${s.date||''} · ${typeBadge}<span style="color:${statusColor};font-weight:600">${s.paid?'Pagado':'Pendiente'}</span></div>
         <div class="stmt-items">${its}</div>
         <div class="stmt-amount">$${s.total.toFixed(2)}</div>
       </div>`;
@@ -1870,6 +1894,7 @@ function renderInventario(){
             <div class="inv-grid-stock"><span class="stock-badge ${bts}">${bt} · ${p.stock} uds</span></div>
             <div class="inv-grid-actions">
               <button onclick="openAdjStock('${p.id}')">Stock</button>
+              <button onclick="toggleProductVisible('${p.id}',${p.visible===false})" style="${p.visible===false?'background:#fee2e2;color:#991b1b':'background:#d1fae5;color:#065f46'}">${p.visible===false?'Oculto':'Visible'}</button>
               <button onclick="openEditProducto('${p.id}')">${EDIT_ICON}</button>
               <button class="danger" onclick="confirmDelete('¿Eliminar?',()=>deleteProducto('${p.id}'))">${DEL_ICON}</button>
             </div>
@@ -2485,6 +2510,55 @@ window.addEventListener('resize',()=>{
     renderSubsGridFull();
   }
 });
+
+
+// ── PRODUCT VISIBILITY ──
+window.toggleProductVisible=async function(prodId, makeVisible){
+  setSyncing();
+  await updateDoc(doc(db,'products',prodId),{visible:makeVisible});
+  setSynced();
+  showToast(makeVisible?'Producto visible en POS':'Producto oculto del POS','success');
+};
+
+// ── CARGO MANUAL ──
+let cargoClientId=null;
+window.openCargo=function(clientId){
+  cargoClientId=clientId;
+  const cl=clients.find(x=>x.id===clientId);
+  document.getElementById('mcargo-title').textContent=`CARGO — ${cl.name}`;
+  document.getElementById('mcargo-info').textContent=`Saldo actual: $${(cl.debt||0).toFixed(2)}`;
+  document.getElementById('cargo-concepto').value='';
+  document.getElementById('cargo-monto').value='';
+  openModal('modal-cargo');
+};
+window.confirmarCargo=async function(){
+  const concepto=document.getElementById('cargo-concepto').value.trim();
+  const monto=parseFloat(document.getElementById('cargo-monto').value);
+  if(!concepto){showToast('Escribe un concepto','error');return;}
+  if(!monto||monto<=0){showToast('Ingresa un monto válido','error');return;}
+  const cl=clients.find(x=>x.id===cargoClientId);
+  setSyncing();
+  // Add to debt
+  const newDebt=(cl.debt||0)+monto;
+  await updateDoc(doc(db,'clients',cargoClientId),{debt:newDebt});
+  // Log as a sale-like record so it appears in statement
+  await addDoc(collection(db,'sales'),{
+    clientId:cargoClientId,
+    clientName:cl.name,
+    items:[{name:concepto,qty:1,price:monto}],
+    total:monto,
+    payMode:'credito',
+    payMethod:'—',
+    paid:false,
+    isCargo:true,
+    createdAt:serverTimestamp(),
+    date:new Date().toLocaleString('es-MX')
+  });
+  await logAudit('credito',`${cl.name} — Cargo: "${concepto}" $${monto.toFixed(2)}`);
+  setSynced();
+  closeModal('modal-cargo');
+  showToast(`Cargo "$${concepto}" de $${monto.toFixed(2)} agregado`,'success');
+};
 
 </script>
 </body>
