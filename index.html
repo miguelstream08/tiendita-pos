@@ -804,16 +804,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   <div id="dashboard-content" style="display:none;flex-direction:column;padding:16px;gap:13px;overflow-y:auto;flex:1;">
     <div class="section-header">
       <div class="section-title">DASHBOARD FINANCIERO</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-primary" onclick="openModal('modal-compra')">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Compra
-        </button>
-        <button class="btn-primary" onclick="openModal('modal-inversion')" style="background:var(--marino)">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Inversión
-        </button>
-      </div>
+      <button class="btn-primary" onclick="openCompra()" style="margin-right:6px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Compra
+      </button>
+      <button class="btn-primary" style="background:var(--marino)" onclick="openModal('modal-inversion')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Inversión
+      </button>
     </div>
     <div class="kpi-row" id="kpi-row"></div>
     <div class="recovery-section">
@@ -965,14 +963,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       </div>
     </div>
     <div class="modal-field"><div class="modal-label">Nombre</div><input class="modal-input" type="text" id="mc-nombre" placeholder="Nombre del cliente"></div>
-    <div class="modal-field" id="mc-slug-wrap">
-      <div class="modal-label">Link personalizado (opcional)</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--gris);white-space:nowrap">?cuenta=</span>
-        <input class="modal-input" type="text" id="mc-slug" placeholder="ej: delia, athziry..." style="flex:1">
-      </div>
-      <div style="font-size:10px;color:var(--gris);margin-top:4px">Solo letras, números y guiones. Sin espacios.</div>
-    </div>
+    <div class="modal-field"><div class="modal-label">Link estado de cuenta</div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--gris);white-space:nowrap">?cuenta=</span><input class="modal-input" type="text" id="mc-slug" placeholder="ej: delia" style="flex:1"></div><div style="font-size:10px;color:var(--gris);margin-top:3px">Solo letras/números, sin espacios</div></div>
     <div class="modal-field" id="mc-ciclo-wrap">
       <div class="modal-label">Ciclo Tiendita</div>
       <select class="modal-select" id="mc-ciclo">
@@ -1173,56 +1164,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
 </div>
 
 
-<!-- MODAL CARGO -->
-
-
-<!-- MODAL COMPRA DE PRODUCTO -->
-<div class="modal-overlay" id="modal-compra">
-  <div class="modal">
-    <div class="modal-title">REGISTRAR COMPRA</div>
-    <div style="font-size:12px;color:var(--gris);margin-bottom:14px">Se agrega al inventario y registra como inversión</div>
-    <div class="modal-field"><div class="modal-label">Producto</div>
-      <select class="modal-select" id="compra-producto">
-        <option value="">— Seleccionar producto —</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:1"><div class="modal-label">Piezas compradas</div>
-        <input class="modal-input" type="number" id="compra-piezas" placeholder="0" min="1" oninput="calcularCompra()">
-      </div>
-      <div class="modal-field" style="flex:1"><div class="modal-label">Costo total ($)</div>
-        <input class="modal-input" type="number" id="compra-costo-total" placeholder="0.00" min="0" step="0.5" oninput="calcularCompra()">
-      </div>
-    </div>
-    <div id="compra-calc" style="background:var(--gris-light);border-radius:10px;padding:12px;margin-bottom:12px;display:none">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;color:var(--gris)">Costo por pieza</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600" id="calc-costo-pieza">$0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;color:var(--gris)">Precio de venta</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600" id="calc-precio-venta">$0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;color:var(--gris)">Ganancia por pieza</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--verde)" id="calc-ganancia">$0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between">
-        <span style="font-size:12px;color:var(--gris)">Rentabilidad</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--marino)" id="calc-rentabilidad">0%</span>
-      </div>
-    </div>
-    <div class="modal-field"><div class="modal-label">Descripción (opcional)</div>
-      <input class="modal-input" type="text" id="compra-desc" placeholder="Ej: Surtido semanal, oferta...">
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('modal-compra')">Cancelar</button>
-      <button class="btn-confirm" onclick="confirmarCompra()">Registrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL COBRO PARCIAL (crédito) -->
+<!-- MODAL COBRO -->
 <div class="modal-overlay" id="modal-cobro">
   <div class="modal">
     <div class="modal-title" id="mcobro-title">REGISTRAR COBRO</div>
@@ -1238,11 +1180,57 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       </select>
     </div>
     <div class="modal-field"><div class="modal-label">Nota (opcional)</div>
-      <input class="modal-input" type="text" id="cobro-nota" placeholder="Ej: Abono, pago parcial...">
+      <input class="modal-input" type="text" id="cobro-nota" placeholder="Ej: Abono parcial...">
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-cobro')">Cancelar</button>
       <button class="btn-confirm" onclick="confirmarCobro()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMPRA -->
+<div class="modal-overlay" id="modal-compra">
+  <div class="modal">
+    <div class="modal-title">REGISTRAR COMPRA</div>
+    <div style="font-size:12px;color:var(--gris);margin-bottom:14px">Suma al stock y registra como inversión</div>
+    <div class="modal-field"><div class="modal-label">Producto</div>
+      <select class="modal-select" id="compra-producto" onchange="calcularCompra()">
+        <option value="">— Seleccionar —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:1"><div class="modal-label">Piezas compradas</div>
+        <input class="modal-input" type="number" id="compra-piezas" placeholder="0" min="1" oninput="calcularCompra()">
+      </div>
+      <div class="modal-field" style="flex:1"><div class="modal-label">Costo total ($)</div>
+        <input class="modal-input" type="number" id="compra-costo-total" placeholder="0.00" min="0" oninput="calcularCompra()">
+      </div>
+    </div>
+    <div id="compra-calc" style="background:var(--gris-light);border-radius:10px;padding:12px;margin-bottom:12px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Costo por pieza</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="calc-costo-pieza">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Precio de venta</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="calc-precio-venta">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Ganancia/pieza</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--verde)" id="calc-ganancia">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:12px;color:var(--gris)">Rentabilidad</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--marino)" id="calc-rentabilidad">0%</span>
+      </div>
+    </div>
+    <div class="modal-field"><div class="modal-label">Nota (opcional)</div>
+      <input class="modal-input" type="text" id="compra-desc" placeholder="Ej: Surtido semanal...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-compra')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarCompra()">Registrar</button>
     </div>
   </div>
 </div>
@@ -1317,7 +1305,9 @@ window.confirmCrop=function(){
   document.getElementById('crop-modal').classList.remove('open');
   if(cropper){cropper.destroy();cropper=null;}
 };
-// crop-zoom attached in init
+document.getElementById('crop-zoom').addEventListener('input',function(){
+  if(cropper) cropper.zoomTo(parseFloat(this.value));
+});
 
 let products=[],clients=[],sales=[],subscriptions=[],inversion=0;
 let order=[],payMode='credito',payMethod='efectivo',currentCat='Todos';
@@ -1701,7 +1691,6 @@ window.checkout=async function(){
   const clientId=document.getElementById('order-client').value;
   if(!clientId){showToast('Selecciona un cliente','error');return;}
   if(!order.length){showToast('Orden vacía','error');return;}
-  if(payMode==='inmediato'&&!payMethod){showToast('Selecciona método de pago','error');return;}
   setSyncing();
   try{
     const client=clients.find(c=>c.id===clientId);
@@ -1777,7 +1766,7 @@ function makeClientCard(c){
     ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
     <div class="cc-actions">
       <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
-        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="navigator.clipboard.writeText(location.origin+location.pathname+'?cuenta='+c.slug).then(()=>showToast('Link copiado','success'))">🔗 Link</button>`:''}
+        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="navigator.clipboard.writeText(location.origin+location.pathname+'?cuenta='+c.slug).then(()=>showToast('Link copiado','success'))" title="Copiar link">🔗</button>`:''}
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
       ${hd?`<button class="cc-btn pay" onclick="openCobro('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
       <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
@@ -1809,7 +1798,6 @@ function makeClientListRow(c){
       <button class="clr-btn" onclick="openEditCliente('${c.id}')" title="Editar">${EDIT_ICON}</button>
       ${hd?`<button class="clr-btn pay" onclick="openCobro('${c.id}')" title="Cobrar">${PAY_ICON}</button>`:''}
       <button class="clr-btn" style="background:#fef3c7;color:#92400e" onclick="openCargo('${c.id}')" title="Agregar cargo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <button class="clr-btn" style="background:#fef3c7;color:#92400e;font-weight:700" onclick="openCargo('${c.id}')" title="Cargo">+</button>
       <button class="clr-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))" title="Eliminar">${DEL_ICON}</button>
     </div>
   </div>`;
@@ -1887,8 +1875,8 @@ window.openEditCliente=function(id){
   else{ap.style.display='none';document.getElementById('avatar-upload-area').querySelector('svg').style.display='block';}
   const type=c.clientType||(c.appShared?'ambos':'tiendita');
   setClientType(type);
-  const slugEl=document.getElementById('mc-slug');
-  if(slugEl) slugEl.value=c.slug||'';
+  const slugEl2=document.getElementById('mc-slug');
+  if(slugEl2) slugEl2.value=c.slug||'';
   openModal('modal-cliente');
 };
 window.handleAvatarUpload=function(e){
@@ -1910,19 +1898,8 @@ window.saveCliente=async function(){
   const cycleTiendita=currentClientType==='app'?'mensual':cycle;
   const slugEl=document.getElementById('mc-slug');
   const slug=slugEl?slugEl.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,''):'';
-  if(slug){
-    const existing=clients.find(cl=>cl.slug===slug&&cl.id!==id);
-    if(existing){showToast('Ese link ya lo usa '+existing.name,'error');return;}
-  }
-  const data={
-    name,
-    cycle: cycleTiendita,
-    cycleApp,
-    photo:currentAvatarB64,
-    appShared,
-    clientType:currentClientType,
-    slug:slug||''
-  };
+  if(slug){const ex=clients.find(cl=>cl.slug===slug&&cl.id!==id);if(ex){showToast('Link ya en uso por '+ex.name,'error');return;}}
+  const data={name,cycle:cycleTiendita,cycleApp,photo:currentAvatarB64,appShared,clientType:currentClientType,slug:slug||''};
   if(id){await updateDoc(doc(db,'clients',id),data);showToast('Cliente actualizado','success');}
   else{await addDoc(collection(db,'clients'),{...data,debt:0,createdAt:serverTimestamp()});showToast(`${name} agregado`,'success');}
   setSynced();closeModal('modal-cliente');
@@ -2663,61 +2640,7 @@ window.confirmarCargo=async function(){
 };
 
 
-// ── LOGO → HOME ──
-// Already handled in HTML onclick
-
-// ── PRODUCT VISIBILITY ──
-// ── CARGO MANUAL ──
-let cargoClientId=null;
-// ── COMPRA DE PRODUCTO ──
-window.calcularCompra=function(){
-  const piezas=parseInt(document.getElementById('compra-piezas').value)||0;
-  const costoTotal=parseFloat(document.getElementById('compra-costo-total').value)||0;
-  const sel=document.getElementById('compra-producto');
-  const opt=sel.options[sel.selectedIndex];
-  const precioVenta=opt?parseFloat(opt.dataset.price||0):0;
-  const calcEl=document.getElementById('compra-calc');
-  if(piezas>0&&costoTotal>0&&precioVenta>0){
-    const costoPieza=costoTotal/piezas;
-    const gananciaPieza=precioVenta-costoPieza;
-    const rentabilidad=costoPieza>0?((gananciaPieza/costoPieza)*100):0;
-    document.getElementById('calc-costo-pieza').textContent='$'+costoPieza.toFixed(2);
-    document.getElementById('calc-precio-venta').textContent='$'+precioVenta.toFixed(2);
-    document.getElementById('calc-ganancia').textContent='$'+gananciaPieza.toFixed(2);
-    document.getElementById('calc-ganancia').style.color=gananciaPieza>=0?'var(--verde)':'var(--rojo)';
-    document.getElementById('calc-rentabilidad').textContent=rentabilidad.toFixed(1)+'%';
-    document.getElementById('calc-rentabilidad').style.color=rentabilidad>=0?'var(--marino)':'var(--rojo)';
-    calcEl.style.display='block';
-  } else { calcEl.style.display='none'; }
-};
-window.confirmarCompra=async function(){
-  const prodId=document.getElementById('compra-producto').value;
-  const piezas=parseInt(document.getElementById('compra-piezas').value)||0;
-  const costoTotal=parseFloat(document.getElementById('compra-costo-total').value)||0;
-  const desc=document.getElementById('compra-desc').value.trim();
-  if(!prodId){showToast('Selecciona un producto','error');return;}
-  if(!piezas||piezas<1){showToast('Ingresa las piezas compradas','error');return;}
-  if(!costoTotal||costoTotal<=0){showToast('Ingresa el costo total','error');return;}
-  const prod=products.find(p=>p.id===prodId);
-  setSyncing();
-  // Add to stock
-  await updateDoc(doc(db,'products',prodId),{stock:(prod.stock||0)+piezas});
-  // Register as investment
-  await setDoc(doc(db,'config','inversion'),{total:inversion+costoTotal});
-  // Log purchase
-  await addDoc(collection(db,'purchases'),{
-    prodId,prodName:prod.name,piezas,costoTotal,
-    costoPieza:costoTotal/piezas,precioVenta:prod.price,
-    ganancia:(prod.price-(costoTotal/piezas))*piezas,
-    desc:desc||'',
-    date:new Date().toLocaleString('es-MX'),
-    createdAt:serverTimestamp()
-  });
-  setSynced();closeModal('modal-compra');
-  showToast(piezas+' piezas de '+prod.name+' registradas — $'+costoTotal.toFixed(2)+' invertidos','success');
-};
-
-// ── COBRO PARCIAL (crédito con método) ──
+// ── COBRO PARCIAL ──
 let cobroClientId=null;
 window.openCobro=function(clientId){
   cobroClientId=clientId;
@@ -2735,103 +2658,85 @@ window.confirmarCobro=async function(){
   if(!monto||monto<=0){showToast('Ingresa un monto válido','error');return;}
   const cl=clients.find(x=>x.id===cobroClientId);
   setSyncing();
-  const newDebt=Math.max(0,(cl.debt||0)-monto);
-  await updateDoc(doc(db,'clients',cobroClientId),{debt:newDebt});
-  await addDoc(collection(db,'cobros'),{
-    clientId:cobroClientId,clientName:cl.name,
-    monto,metodo,nota:nota||'',
-    date:new Date().toLocaleString('es-MX'),
-    createdAt:serverTimestamp()
-  });
+  await updateDoc(doc(db,'clients',cobroClientId),{debt:Math.max(0,(cl.debt||0)-monto)});
+  await addDoc(collection(db,'cobros'),{clientId:cobroClientId,clientName:cl.name,monto,metodo,nota:nota||'',date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});
   setSynced();closeModal('modal-cobro');
-  showToast('Cobro $'+monto.toFixed(2)+' via '+metodo+' registrado','success');
+  showToast('$'+monto.toFixed(2)+' cobrado via '+metodo,'success');
 };
 
-// ── SLUG PER CLIENT ──
-// Update saveCliente to save slug
-const _origSaveCliente=window.saveCliente;
-// Patch the actual save to include slug
-const _origSaveClienteReal=window.confirmarCargo; // just to check it exists
+// ── COMPRA DE PRODUCTO ──
+window.openCompra=function(){
+  const sel=document.getElementById('compra-producto');
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+
+    [...products].sort((a,b)=>a.name.localeCompare(b.name,'es'))
+      .map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} ($${p.price.toFixed(2)})</option>`).join('');
+  document.getElementById('compra-piezas').value='';
+  document.getElementById('compra-costo-total').value='';
+  document.getElementById('compra-desc').value='';
+  document.getElementById('compra-calc').style.display='none';
+  openModal('modal-compra');
+};
+window.calcularCompra=function(){
+  const piezas=parseInt(document.getElementById('compra-piezas').value)||0;
+  const costoTotal=parseFloat(document.getElementById('compra-costo-total').value)||0;
+  const sel=document.getElementById('compra-producto');
+  const precioVenta=sel.selectedIndex>0?parseFloat(sel.options[sel.selectedIndex].dataset.price||0):0;
+  if(piezas>0&&costoTotal>0&&precioVenta>0){
+    const costoPieza=costoTotal/piezas;
+    const ganancia=precioVenta-costoPieza;
+    const rent=costoPieza>0?(ganancia/costoPieza*100):0;
+    document.getElementById('calc-costo-pieza').textContent='$'+costoPieza.toFixed(2);
+    document.getElementById('calc-precio-venta').textContent='$'+precioVenta.toFixed(2);
+    document.getElementById('calc-ganancia').textContent='$'+ganancia.toFixed(2);
+    document.getElementById('calc-ganancia').style.color=ganancia>=0?'var(--verde)':'var(--rojo)';
+    document.getElementById('calc-rentabilidad').textContent=rent.toFixed(1)+'%';
+    document.getElementById('compra-calc').style.display='block';
+  } else document.getElementById('compra-calc').style.display='none';
+};
+window.confirmarCompra=async function(){
+  const prodId=document.getElementById('compra-producto').value;
+  const piezas=parseInt(document.getElementById('compra-piezas').value)||0;
+  const costoTotal=parseFloat(document.getElementById('compra-costo-total').value)||0;
+  const desc=document.getElementById('compra-desc').value.trim();
+  if(!prodId){showToast('Selecciona un producto','error');return;}
+  if(piezas<1){showToast('Ingresa las piezas','error');return;}
+  if(costoTotal<=0){showToast('Ingresa el costo total','error');return;}
+  const prod=products.find(p=>p.id===prodId);
+  setSyncing();
+  await updateDoc(doc(db,'products',prodId),{stock:(prod.stock||0)+piezas});
+  await setDoc(doc(db,'config','inversion'),{total:inversion+costoTotal});
+  await addDoc(collection(db,'purchases'),{prodId,prodName:prod.name,piezas,costoTotal,costoPieza:costoTotal/piezas,precioVenta:prod.price,desc:desc||'',date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});
+  setSynced();closeModal('modal-compra');
+  showToast(piezas+' piezas de '+prod.name+' — $'+costoTotal.toFixed(2)+' invertidos','success');
+};
 
-// ── CUSTOMER VIEW (estado de cuenta by slug) ──
+// ── CUSTOMER VIEW (estado de cuenta) ──
 function checkCustomerView(){
-  const params=new URLSearchParams(window.location.search);
-  const slug=params.get('cuenta');
+  const slug=new URLSearchParams(window.location.search).get('cuenta');
   if(!slug) return;
-  // Show customer view
   document.getElementById('loading-screen').style.display='none';
-  document.body.innerHTML=buildCustomerView(slug);
-  // Listen for client data
+  document.body.innerHTML=`<div style="min-height:100vh;background:#F5F0E8;font-family:'DM Sans',sans-serif"><div style="background:#0C2340;padding:16px 20px;display:flex;align-items:center;gap:12px"><div style="background:#C8102E;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:18px;color:#fff">T</div><div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:#F5F0E8">LA <span style="color:#C8102E">TIENDITA</span></div></div><div style="max-width:600px;margin:0 auto;padding:20px"><div style="background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a;margin-bottom:4px">Estado de cuenta</div><div id="cv-name" style="font-family:'Bebas Neue',cursive;font-size:28px;color:#0C2340">Cargando...</div><div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:#8a8a9a;text-transform:uppercase">Saldo pendiente</div><div id="cv-debt" style="font-family:monospace;font-size:32px;font-weight:700;color:#C8102E">...</div></div><div id="cv-status" style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:20px;background:#f0eee9">...</div></div></div><div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="background:#0C2340;padding:12px 16px;font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:1px;color:#F5F0E8">HISTORIAL</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f0eee9"><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Fecha</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Concepto</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Monto</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Estado</th></tr></thead><tbody id="cv-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando...</td></tr></tbody></table></div></div><div style="text-align:center;padding:20px;font-size:11px;color:#8a8a9a">La Tiendita de Don Migue · Solo lectura</div></div></div>`;
   onSnapshot(collection(db,'clients'),snap=>{
-    const clientsData=snap.docs.map(d=>({id:d.id,...d.data()}));
-    const client=clientsData.find(c=>c.slug===slug);
-    if(!client){
-      document.getElementById('cv-content').innerHTML='<div style="text-align:center;padding:40px;color:#666">Cliente no encontrado</div>';
-      return;
-    }
+    const cls=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const client=cls.find(cc=>cc.slug===slug);
+    if(!client){document.getElementById('cv-name').textContent='Cliente no encontrado';return;}
     document.getElementById('cv-name').textContent=client.name;
     document.getElementById('cv-debt').textContent='$'+(client.debt||0).toFixed(2);
-    document.getElementById('cv-status').textContent=(client.debt||0)>0?'Saldo pendiente':'Al día';
-    document.getElementById('cv-status').style.color=(client.debt||0)>0?'#C8102E':'#16a34a';
-    // Load sales
-    onSnapshot(query(collection(db,'sales'),orderBy('createdAt','desc')),salesSnap=>{
-      const clientSales=salesSnap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.clientId===client.id);
+    const hd=(client.debt||0)>0;
+    document.getElementById('cv-status').textContent=hd?'Saldo pendiente':'Al día';
+    document.getElementById('cv-status').style.color=hd?'#C8102E':'#16a34a';
+    onSnapshot(query(collection(db,'sales'),orderBy('createdAt','desc')),ss=>{
+      const rows=ss.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.clientId===client.id);
       const tbody=document.getElementById('cv-tbody');
-      if(!clientSales.length){
-        tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Sin movimientos</td></tr>';
-        return;
-      }
-      tbody.innerHTML=clientSales.map(s=>{
-        const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} ×${i.qty}`).join(', ');
+      if(!rows.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Sin movimientos</td></tr>';return;}
+      tbody.innerHTML=rows.map(s=>{
+        const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} x${i.qty}`).join(', ');
         const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':'';
-        return `<tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a;white-space:nowrap">${s.date||''}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#C8102E">$${s.total.toFixed(2)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${s.paid?'#d1fae5':'#fee2e2'};color:${s.paid?'#065f46':'#991b1b'}">${s.paid?'Pagado':'Pendiente'}</span></td>
-        </tr>`;
+        return `<tr><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#C8102E">$${s.total.toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${s.paid?'#d1fae5':'#fee2e2'};color:${s.paid?'#065f46':'#991b1b'}">${s.paid?'Pagado':'Pendiente'}</span></td></tr>`;
       }).join('');
     });
   });
 }
-function buildCustomerView(slug){
-  return `
-  <div style="min-height:100vh;background:#F5F0E8;font-family:'DM Sans',sans-serif">
-    <div style="background:#0C2340;padding:16px 20px;display:flex;align-items:center;gap:12px">
-      <div style="background:#C8102E;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:18px;color:#fff">T</div>
-      <div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:#F5F0E8">LA <span style="color:#C8102E">TIENDITA</span></div>
-    </div>
-    <div style="max-width:600px;margin:0 auto;padding:20px">
-      <div style="background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(12,35,64,.08)">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a;margin-bottom:4px">Estado de cuenta</div>
-        <div id="cv-name" style="font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:1px;color:#0C2340">Cargando...</div>
-        <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:11px;color:#8a8a9a;text-transform:uppercase;letter-spacing:.5px">Saldo pendiente</div>
-            <div id="cv-debt" style="font-family:monospace;font-size:32px;font-weight:700;color:#C8102E">...</div>
-          </div>
-          <div id="cv-status" style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:20px;background:#f0eee9">...</div>
-        </div>
-      </div>
-      <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(12,35,64,.08)">
-        <div style="background:#0C2340;padding:12px 16px;font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:1px;color:#F5F0E8">HISTORIAL DE MOVIMIENTOS</div>
-        <div id="cv-content" style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="background:#f0eee9">
-              <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a">Fecha</th>
-              <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a">Concepto</th>
-              <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a">Monto</th>
-              <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a">Estado</th>
-            </tr></thead>
-            <tbody id="cv-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="text-align:center;padding:20px;font-size:11px;color:#8a8a9a">La Tiendita de Don Migue · Solo lectura</div>
-    </div>
-  </div>`;
-}
-
 </script>
 </body>
 </html>
