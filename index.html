@@ -1912,7 +1912,7 @@ function makeClientCard(c){
     ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
     <div class="cc-actions">
       <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
-        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="copyClientLink('${c.slug}')" title="Copiar link y mandar por WhatsApp">🔗</button>`':''}
+        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="copyClientLink('${c.slug}')" title="Copiar link y mandar por WhatsApp">🔗</button>`:''}
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
       ${hd?`<button class="cc-btn pay" onclick="openCobro('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
       <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
