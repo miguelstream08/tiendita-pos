@@ -1805,8 +1805,10 @@ function renderOrder(){
     document.getElementById('total-items').textContent='0';return;
   }
   let total=0,items=0;
+  const subProdsRO=subscriptions.map(sub=>({id:'sub_'+sub.id,name:sub.name,cat:'Suscripciones',price:sub.price,stock:99,photo:sub.logo||'',isSub:true,subId:sub.id}));
   el.innerHTML=order.map(o=>{
-    const prod=products.find(p=>p.id===o.prodId);
+    const prod=[...products,...subProdsRO].find(p=>p.id===o.prodId);
+    if(!prod) return '';
     const sub=prod.price*o.qty;total+=sub;items+=o.qty;
     const img=prod.photo?`<img src="${prod.photo}">`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
     return `<div class="order-item">
@@ -1841,8 +1843,10 @@ window.checkoutBase=async function(){
   try{
     const client=clients.find(c=>c.id===clientId);
     let total=0;
-    const items=order.map(o=>{const prod=products.find(p=>p.id===o.prodId);total+=prod.price*o.qty;return{prodId:o.prodId,name:prod.name,qty:o.qty,price:prod.price};});
-    for(const o of order){const prod=products.find(p=>p.id===o.prodId);await updateDoc(doc(db,'products',o.prodId),{stock:prod.stock-o.qty});}
+    const subProdsC=subscriptions.map(sub=>({id:'sub_'+sub.id,name:sub.name,price:sub.price,stock:99,isSub:true,subId:sub.id}));
+    const allProdsC=[...products,...subProdsC];
+    const items=order.map(o=>{const prod=allProdsC.find(p=>p.id===o.prodId);total+=prod.price*o.qty;return{prodId:o.prodId,name:prod.name,qty:o.qty,price:prod.price};});
+    for(const o of order){if(!o.prodId.startsWith('sub_')){const prod=products.find(p=>p.id===o.prodId);await updateDoc(doc(db,'products',o.prodId),{stock:prod.stock-o.qty});}}
     await addDoc(collection(db,'sales'),{clientId,clientName:client.name,items,total,payMode,payMethod,paid:payMode==='inmediato',createdAt:serverTimestamp(),date:new Date().toLocaleString('es-MX')});
     if(payMode!=='inmediato')await updateDoc(doc(db,'clients',clientId),{debt:(client.debt||0)+total});
     clearOrder();setSynced();
