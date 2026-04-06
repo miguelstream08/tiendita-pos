@@ -653,9 +653,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Mensual
       </button>
     </div>
-    <div class="pay-method-row">
+    <div class="pay-method-row" id="pay-method-row">
       <div class="field-label">Método de pago</div>
-      <div class="pay-method-btns">
+      <!-- Por definir (crédito/mensual) -->
+      <div id="pay-por-definir" style="display:block">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;font-size:11px;font-weight:600;color:rgba(245,240,232,.6);display:flex;align-items:center;gap:6px">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Se define al cobrar — puede ser mixto
+        </div>
+      </div>
+      <!-- Métodos inmediato -->
+      <div class="pay-method-btns" id="pay-method-btns" style="display:none">
         <button class="method-btn active" id="mth-efectivo" onclick="setMethod('efectivo')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Efectivo
         </button>
@@ -1173,11 +1181,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       <input class="modal-input" type="number" id="cobro-monto" placeholder="0.00" min="0" step="0.5">
     </div>
     <div class="modal-field"><div class="modal-label">Método de pago</div>
-      <select class="modal-select" id="cobro-metodo">
+      <select class="modal-select" id="cobro-metodo" onchange="toggleCobroMixto()">
         <option value="efectivo">Efectivo</option>
         <option value="tarjeta">Tarjeta</option>
         <option value="transferencia">Transferencia</option>
+        <option value="mixto">Mixto (varios métodos)</option>
       </select>
+    </div>
+    <div id="cobro-mixto-wrap" style="display:none">
+      <div style="font-size:11px;color:var(--gris);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Desglose del pago mixto</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <div style="flex:1"><div class="modal-label">Efectivo ($)</div><input class="modal-input" type="number" id="cobro-mix-efectivo" placeholder="0.00" min="0" step="0.5"></div>
+        <div style="flex:1"><div class="modal-label">Tarjeta ($)</div><input class="modal-input" type="number" id="cobro-mix-tarjeta" placeholder="0.00" min="0" step="0.5"></div>
+      </div>
+      <div style="flex:1"><div class="modal-label">Transferencia ($)</div><input class="modal-input" type="number" id="cobro-mix-transfer" placeholder="0.00" min="0" step="0.5"></div>
     </div>
     <div class="modal-field"><div class="modal-label">Nota (opcional)</div>
       <input class="modal-input" type="text" id="cobro-nota" placeholder="Ej: Abono parcial...">
@@ -1828,6 +1845,17 @@ window.setPayMode=function(mode){
   payMode=mode;
   document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('pm-'+mode).classList.add('active');
+  // Toggle method display
+  const isImediato=mode==='inmediato';
+  document.getElementById('pay-method-btns').style.display=isImediato?'flex':'none';
+  document.getElementById('pay-por-definir').style.display=isImediato?'none':'block';
+  if(isImediato){
+    payMethod='efectivo';
+    document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('mth-efectivo').classList.add('active');
+  } else {
+    payMethod='por-definir';
+  }
 };
 window.setMethod=function(method){
   payMethod=method;
@@ -2800,19 +2828,52 @@ window.openCobro=function(clientId){
   document.getElementById('mcobro-info').textContent='Saldo pendiente: $'+(cl.debt||0).toFixed(2);
   document.getElementById('cobro-monto').value=(cl.debt||0).toFixed(2);
   document.getElementById('cobro-nota').value='';
+  document.getElementById('cobro-metodo').value='efectivo';
+  document.getElementById('cobro-mixto-wrap').style.display='none';
+  ['cobro-mix-efectivo','cobro-mix-tarjeta','cobro-mix-transfer'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
   openModal('modal-cobro');
+};
+// Toggle mixto fields
+document.addEventListener('change',function(e){
+  if(e.target.id==='cobro-metodo'){
+    document.getElementById('cobro-mixto-wrap').style.display=e.target.value==='mixto'?'block':'none';
+  }
+});
+
+window.toggleCobroMixto=function(){
+  const metodo=document.getElementById('cobro-metodo').value;
+  const wrap=document.getElementById('cobro-mixto-wrap')||document.getElementById('cobro-mixto-wr');
+  if(wrap) wrap.style.display=metodo==='mixto'?'flex':'none';
 };
 window.confirmarCobro=async function(){
   const monto=parseFloat(document.getElementById('cobro-monto').value);
   const metodo=document.getElementById('cobro-metodo').value;
   const nota=document.getElementById('cobro-nota').value.trim();
   if(!monto||monto<=0){showToast('Ingresa un monto válido','error');return;}
+  // Build method detail
+  let metodoDesc=metodo;
+  if(metodo==='mixto'){
+    const ef=parseFloat(document.getElementById('cobro-mix-efectivo').value)||0;
+    const tj=parseFloat(document.getElementById('cobro-mix-tarjeta').value)||0;
+    const tr=parseFloat(document.getElementById('cobro-mix-transfer').value)||0;
+    const parts=[];
+    if(ef>0) parts.push(`Efectivo $${ef.toFixed(2)}`);
+    if(tj>0) parts.push(`Tarjeta $${tj.toFixed(2)}`);
+    if(tr>0) parts.push(`Transfer $${tr.toFixed(2)}`);
+    metodoDesc=parts.length?parts.join(' + '):'Mixto';
+  }
   const cl=clients.find(x=>x.id===cobroClientId);
   setSyncing();
   await updateDoc(doc(db,'clients',cobroClientId),{debt:Math.max(0,(cl.debt||0)-monto)});
-  await addDoc(collection(db,'cobros'),{clientId:cobroClientId,clientName:cl.name,monto,metodo,nota:nota||'',date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});
+  await addDoc(collection(db,'cobros'),{
+    clientId:cobroClientId,clientName:cl.name,
+    monto,metodo:metodoDesc,nota:nota||'',
+    date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()
+  });
   setSynced();closeModal('modal-cobro');
-  showToast('$'+monto.toFixed(2)+' cobrado via '+metodo,'success');
+  showToast('$'+monto.toFixed(2)+' cobrado — '+metodoDesc,'success');
 };
 
 // ── COMPRA DE PRODUCTO ──
