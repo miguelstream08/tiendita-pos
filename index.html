@@ -1323,6 +1323,9 @@ function updateDate(){document.getElementById('topbar-date').textContent=new Dat
 // updateDate called in init
 
 // AUTH
+// Check customer view before auth
+checkCustomerView();
+
 onAuthStateChanged(auth,user=>{
   currentUser=user;
   const lb=document.getElementById('logout-btn');
