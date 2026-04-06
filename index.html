@@ -751,6 +751,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         </button>
       </div>
+      <button class="btn-primary" onclick="openNuevoIngreso()" style="background:var(--marino);margin-right:6px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        Ingreso
+      </button>
       <button class="btn-primary" onclick="openAddProducto()">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nuevo
@@ -804,11 +808,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   <div id="dashboard-content" style="display:none;flex-direction:column;padding:16px;gap:13px;overflow-y:auto;flex:1;">
     <div class="section-header">
       <div class="section-title">DASHBOARD FINANCIERO</div>
-      <button class="btn-primary" onclick="openCompra()" style="margin-right:6px">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Compra
-      </button>
-      <button class="btn-primary" style="background:var(--marino)" onclick="openModal('modal-inversion')">
+      <button class="btn-primary" onclick="openModal('modal-inversion')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Inversión
       </button>
@@ -1235,6 +1235,129 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
   </div>
 </div>
 
+
+<!-- MODAL NUEVO INGRESO (inventario) -->
+<div class="modal-overlay" id="modal-ingreso">
+  <div class="modal">
+    <div class="modal-title">NUEVO INGRESO</div>
+    <div style="font-size:12px;color:var(--gris);margin-bottom:14px">Agrega stock y registra la inversión automáticamente</div>
+
+    <!-- Producto: existente o nuevo -->
+    <div class="modal-field">
+      <div class="modal-label">¿Es producto existente?</div>
+      <div style="display:flex;gap:8px">
+        <button class="sort-btn active" id="ing-tipo-existente" onclick="setIngresoTipo('existente')">Existente</button>
+        <button class="sort-btn" id="ing-tipo-nuevo" onclick="setIngresoTipo('nuevo')">Producto nuevo</button>
+      </div>
+    </div>
+
+    <!-- Existente -->
+    <div id="ing-existente-wrap">
+      <div class="modal-field"><div class="modal-label">Producto</div>
+        <select class="modal-select" id="ing-producto" onchange="onIngresoProductoChange()">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Nuevo producto -->
+    <div id="ing-nuevo-wrap" style="display:none">
+      <div class="modal-field"><div class="modal-label">Nombre del producto</div>
+        <input class="modal-input" type="text" id="ing-nombre" placeholder="Ej: Sabritas Rancheritos">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="modal-field" style="flex:1"><div class="modal-label">Categoría</div>
+          <input class="modal-input" type="text" id="ing-cat" placeholder="Ej: Papitas">
+        </div>
+        <div class="modal-field" style="flex:1"><div class="modal-label">Precio de venta ($)</div>
+          <input class="modal-input" type="number" id="ing-precio" placeholder="0.00" oninput="calcIngreso()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Cantidad y unidad -->
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:1"><div class="modal-label">Cantidad</div>
+        <input class="modal-input" type="number" id="ing-cantidad" placeholder="0" min="1" oninput="calcIngreso()">
+      </div>
+      <div class="modal-field" style="flex:1"><div class="modal-label">Unidad</div>
+        <select class="modal-select" id="ing-unidad">
+          <option value="piezas">Piezas</option>
+          <option value="kg">Kilogramos</option>
+          <option value="gr">Gramos</option>
+          <option value="lts">Litros</option>
+          <option value="ml">Mililitros</option>
+          <option value="cajas">Cajas</option>
+          <option value="paquetes">Paquetes</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Costo -->
+    <div class="modal-field"><div class="modal-label">Costo total de la compra ($)</div>
+      <input class="modal-input" type="number" id="ing-costo" placeholder="0.00" min="0" step="0.5" oninput="calcIngreso()">
+    </div>
+
+    <!-- Calculadora -->
+    <div id="ing-calc" style="background:var(--gris-light);border-radius:10px;padding:12px;margin-bottom:12px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Costo unitario</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="ing-calc-unit">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Precio de venta</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="ing-calc-venta">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gris)">Ganancia unitaria</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="ing-calc-ganancia">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span style="font-size:12px;color:var(--gris)">Rentabilidad</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600" id="ing-calc-rent">0%</span>
+      </div>
+    </div>
+
+    <div class="modal-field"><div class="modal-label">Nota (opcional)</div>
+      <input class="modal-input" type="text" id="ing-nota" placeholder="Ej: Surtido semanal, oferta...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-ingreso')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarIngreso()">Registrar ingreso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VENTA SUSCRIPCIÓN -->
+<div class="modal-overlay" id="modal-sub-venta">
+  <div class="modal">
+    <div class="modal-title" id="msv-title">PAGO DE SUSCRIPCIÓN</div>
+    <div style="font-size:13px;color:var(--gris);margin-bottom:14px" id="msv-info"></div>
+    <div class="modal-field"><div class="modal-label">Cliente</div>
+      <select class="modal-select" id="msv-cliente">
+        <option value="">— Seleccionar cliente —</option>
+      </select>
+    </div>
+    <div class="modal-field"><div class="modal-label">Mes que paga</div>
+      <input class="modal-input" type="month" id="msv-mes">
+    </div>
+    <div class="modal-field"><div class="modal-label">Monto pagado ($)</div>
+      <input class="modal-input" type="number" id="msv-monto" placeholder="0.00" min="0" step="0.5">
+    </div>
+    <div class="modal-field"><div class="modal-label">Método de pago</div>
+      <select class="modal-select" id="msv-metodo">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-sub-venta')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarSubVenta()">Registrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -1520,7 +1643,8 @@ window.switchView=function(view,btn){
 
 // CATEGORIES
 function renderCategories(){
-  const cats=['Todos',...new Set(products.map(p=>p.cat))];
+  const hasSubs=subscriptions.length>0;
+  const cats=['Todos',...new Set(products.map(p=>p.cat)),...(hasSubs?['Suscripciones']:[])];
   document.getElementById('categories').innerHTML=cats.map(cat=>`<button class="cat-btn ${cat===currentCat?'active':''}" onclick="selectCat('${cat}')">${cat}</button>`).join('');
 }
 window.selectCat=function(cat){currentCat=cat;renderCategories();renderProducts();};
@@ -1553,7 +1677,23 @@ function sortedProducts(list){
 }
 function renderProducts(){
   const s=document.getElementById('search-input').value.toLowerCase();
-  const filtered=products.filter(p=>p.visible!==false&&(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
+  // Build virtual sub products
+  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
+  const subProducts=subscriptions.map(sub=>({
+    id:'sub_'+sub.id,
+    name:sub.name,
+    cat:'Suscripciones',
+    price:sub.price,
+    stock:99,
+    minStock:0,
+    photo:sub.logo||'',
+    visible:true,
+    isSub:true,
+    subId:sub.id,
+    cycle:sub.cycle||'mensual'
+  }));
+  const allProds=[...products,...subProducts];
+  const filtered=allProds.filter(p=>p.visible!==false&&(currentCat==='Todos'||p.cat===currentCat)&&p.name.toLowerCase().includes(s));
   const f=sortedProducts(filtered);
   const el=document.getElementById('products-grid');
   if(!f.length){el.innerHTML='<div style="color:var(--gris);font-size:13px;padding:14px;grid-column:1/-1">Sin productos</div>';return;}
@@ -1640,7 +1780,10 @@ window.confirmarAbonar=async function(){
   showToast(`$${monto.toFixed(2)} registrado a favor de ${c.name}`,'success');
 };
 window.addToOrder=function(prodId){
-  const prod=products.find(p=>p.id===prodId);
+  // Handle virtual sub products
+  const now=new Date();const cy=now.getFullYear();const cm=now.getMonth();
+  const subProds=subscriptions.map(sub=>({id:'sub_'+sub.id,name:sub.name,cat:'Suscripciones',price:sub.price,stock:99,minStock:0,photo:sub.logo||'',visible:true,isSub:true,subId:sub.id}));
+  const prod=[...products,...subProds].find(p=>p.id===prodId);
   if(!prod||prod.stock===0)return;
   const ex=order.find(o=>o.prodId===prodId);
   if(ex){if(ex.qty>=prod.stock){showToast('Sin más stock','error');return;}ex.qty++;}
@@ -1690,7 +1833,7 @@ window.setMethod=function(method){
   document.getElementById('mth-'+method).classList.add('active');
 };
 window.clearOrder=function(){order=[];renderOrder();};
-window.checkout=async function(){
+window.checkoutBase=async function(){
   const clientId=document.getElementById('order-client').value;
   if(!clientId){showToast('Selecciona un cliente','error');return;}
   if(!order.length){showToast('Orden vacía','error');return;}
@@ -1769,10 +1912,11 @@ function makeClientCard(c){
     ${(c.credit||0)>0?`<div style="font-size:10px;font-weight:600;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">★ Saldo a favor: $${(c.credit||0).toFixed(2)}</div>`:''}
     <div class="cc-actions">
       <button class="cc-btn" onclick="openStatement('${c.id}')">Cuenta</button>
-        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="navigator.clipboard.writeText(location.origin+location.pathname+'?cuenta='+c.slug).then(()=>showToast('Link copiado','success'))" title="Copiar link">🔗</button>`:''}
+        ${c.slug?`<button class="cc-btn" style="background:#dbeafe;color:#1e40af" onclick="copyClientLink('${c.slug}')" title="Copiar link y mandar por WhatsApp">🔗</button>`':''}
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">${EDIT_ICON}</button>
       ${hd?`<button class="cc-btn pay" onclick="openCobro('${c.id}')">${PAY_ICON} Cobrar</button>`:''}
       <button class="cc-btn" style="background:#d1fae5;color:#065f46" onclick="openAbonar('${c.id}')">★ Abonar</button>
+      <button class="cc-btn" style="background:#fef3c7;color:#92400e" onclick="openCargo('${c.id}')">+ Cargo</button>
       <button class="cc-btn danger" onclick="confirmDelete('¿Eliminar a ${c.name}?',()=>deleteCliente('${c.id}'))">${DEL_ICON}</button>
     </div>
     <div class="cc-app-toggle">
@@ -2740,6 +2884,172 @@ function checkCustomerView(){
     });
   });
 }
+
+// ── COPY CLIENT LINK + WHATSAPP ──
+window.copyClientLink=function(slug){
+  const url=location.origin+location.pathname+'?cuenta='+slug;
+  navigator.clipboard.writeText(url).then(()=>{
+    showToast('Link copiado ✓','success');
+  });
+};
+
+// ── NUEVO INGRESO (inventario) ──
+let ingresoTipo='existente';
+window.setIngresoTipo=function(tipo){
+  ingresoTipo=tipo;
+  document.getElementById('ing-tipo-existente').classList.toggle('active',tipo==='existente');
+  document.getElementById('ing-tipo-nuevo').classList.toggle('active',tipo==='nuevo');
+  document.getElementById('ing-existente-wrap').style.display=tipo==='existente'?'block':'none';
+  document.getElementById('ing-nuevo-wrap').style.display=tipo==='nuevo'?'block':'none';
+  document.getElementById('ing-calc').style.display='none';
+};
+window.openNuevoIngreso=function(){
+  ingresoTipo='existente';
+  setIngresoTipo('existente');
+  const sel=document.getElementById('ing-producto');
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+
+    [...products].sort((a,b)=>a.name.localeCompare(b.name,'es'))
+      .map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} — $${p.price.toFixed(2)}</option>`).join('');
+  document.getElementById('ing-cantidad').value='';
+  document.getElementById('ing-costo').value='';
+  document.getElementById('ing-nota').value='';
+  document.getElementById('ing-nombre').value='';
+  document.getElementById('ing-cat').value='';
+  document.getElementById('ing-precio').value='';
+  document.getElementById('ing-calc').style.display='none';
+  openModal('modal-ingreso');
+};
+window.onIngresoProductoChange=function(){
+  calcIngreso();
+};
+window.calcIngreso=function(){
+  const cantidad=parseInt(document.getElementById('ing-cantidad').value)||0;
+  const costo=parseFloat(document.getElementById('ing-costo').value)||0;
+  let precioVenta=0;
+  if(ingresoTipo==='existente'){
+    const sel=document.getElementById('ing-producto');
+    if(sel.selectedIndex>0) precioVenta=parseFloat(sel.options[sel.selectedIndex].dataset.price||0);
+  } else {
+    precioVenta=parseFloat(document.getElementById('ing-precio').value)||0;
+  }
+  const calcEl=document.getElementById('ing-calc');
+  if(cantidad>0&&costo>0){
+    const unitCost=costo/cantidad;
+    const ganancia=precioVenta>0?precioVenta-unitCost:0;
+    const rent=unitCost>0&&precioVenta>0?(ganancia/unitCost*100):0;
+    document.getElementById('ing-calc-unit').textContent='$'+unitCost.toFixed(2);
+    document.getElementById('ing-calc-venta').textContent=precioVenta>0?'$'+precioVenta.toFixed(2):'—';
+    document.getElementById('ing-calc-ganancia').textContent=precioVenta>0?'$'+ganancia.toFixed(2):'—';
+    if(document.getElementById('ing-calc-ganancia').textContent!=='—')
+      document.getElementById('ing-calc-ganancia').style.color=ganancia>=0?'var(--verde)':'var(--rojo)';
+    document.getElementById('ing-calc-rent').textContent=precioVenta>0?rent.toFixed(1)+'%':'—';
+    calcEl.style.display='block';
+  } else calcEl.style.display='none';
+};
+window.confirmarIngreso=async function(){
+  const cantidad=parseInt(document.getElementById('ing-cantidad').value)||0;
+  const costo=parseFloat(document.getElementById('ing-costo').value)||0;
+  const unidad=document.getElementById('ing-unidad').value;
+  const nota=document.getElementById('ing-nota').value.trim();
+  if(cantidad<1){showToast('Ingresa la cantidad','error');return;}
+  if(costo<=0){showToast('Ingresa el costo','error');return;}
+  setSyncing();
+  if(ingresoTipo==='existente'){
+    const prodId=document.getElementById('ing-producto').value;
+    if(!prodId){showToast('Selecciona un producto','error');setSynced();return;}
+    const prod=products.find(p=>p.id===prodId);
+    await updateDoc(doc(db,'products',prodId),{stock:(prod.stock||0)+cantidad});
+    await setDoc(doc(db,'config','inversion'),{total:inversion+costo});
+    await addDoc(collection(db,'purchases'),{prodId,prodName:prod.name,cantidad,unidad,costoTotal:costo,costoPieza:costo/cantidad,precioVenta:prod.price,nota:nota||'',date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});
+    showToast(cantidad+' '+unidad+' de '+prod.name+' — $'+costo.toFixed(2),'success');
+  } else {
+    const nombre=document.getElementById('ing-nombre').value.trim();
+    const cat=document.getElementById('ing-cat').value.trim();
+    const precio=parseFloat(document.getElementById('ing-precio').value)||0;
+    if(!nombre){showToast('Escribe el nombre','error');setSynced();return;}
+    if(!cat){showToast('Escribe la categoría','error');setSynced();return;}
+    if(precio<=0){showToast('Ingresa el precio de venta','error');setSynced();return;}
+    const newRef=await addDoc(collection(db,'products'),{name:nombre,cat,price:precio,stock:cantidad,minStock:3,photo:'',visible:true,createdAt:serverTimestamp()});
+    await setDoc(doc(db,'config','inversion'),{total:inversion+costo});
+    await addDoc(collection(db,'purchases'),{prodId:newRef.id,prodName:nombre,cantidad,unidad,costoTotal:costo,costoPieza:costo/cantidad,precioVenta:precio,nota:nota||'',date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()});
+    showToast('Producto "'+nombre+'" creado con '+cantidad+' '+unidad,'success');
+  }
+  setSynced();closeModal('modal-ingreso');
+};
+
+// ── SUSCRIPCIÓN COMO PRODUCTO EN POS ──
+// When a sub product is added to order and checkout happens, open sub-venta modal
+let pendingSubSale=null;
+window.checkout=async function(){
+  // Check if any sub products in order
+  const subItems=order.filter(o=>o.prodId&&o.prodId.startsWith('sub_'));
+  if(subItems.length>0){
+    // Handle sub sale separately
+    const subItem=subItems[0];
+    const subId=subItem.prodId.replace('sub_','');
+    const sub=subscriptions.find(x=>x.id===subId);
+    pendingSubSale={subId,sub,qty:subItem.qty};
+    // Populate modal
+    document.getElementById('msv-title').textContent='PAGO — '+sub.name;
+    document.getElementById('msv-info').textContent=sub.cycle==='anual'?`$${sub.price}/año · Anual`:`$${sub.price}/mes · Mensual`;
+    document.getElementById('msv-monto').value=sub.price.toFixed(2);
+    // Populate clients — only ambos/app
+    const appClients=[...clients].filter(c=>c.appShared).sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    document.getElementById('msv-cliente').innerHTML='<option value="">— Seleccionar cliente —</option>'+
+      appClients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    // Default month = current
+    const now=new Date();
+    document.getElementById('msv-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    openModal('modal-sub-venta');
+    return;
+  }
+  // No sub items — normal checkout
+  await checkoutBase();
+};
+
+window.confirmarSubVenta=async function(){
+  const clientId=document.getElementById('msv-cliente').value;
+  const mesVal=document.getElementById('msv-mes').value;
+  const monto=parseFloat(document.getElementById('msv-monto').value)||0;
+  const metodo=document.getElementById('msv-metodo').value;
+  if(!clientId){showToast('Selecciona un cliente','error');return;}
+  if(!mesVal){showToast('Selecciona el mes','error');return;}
+  if(monto<=0){showToast('Ingresa el monto','error');return;}
+  const [yr,mo]=mesVal.split('-').map(Number);
+  const month=mo-1; // 0-indexed
+  const cl=clients.find(x=>x.id===clientId);
+  const sub=pendingSubSale.sub;
+  setSyncing();
+  // 1. Register as sale → appears in client statement
+  await addDoc(collection(db,'sales'),{
+    clientId,clientName:cl.name,
+    items:[{name:sub.name+' — '+MONTH_NAMES[month]+' '+yr,qty:1,price:monto}],
+    total:monto,payMode:'inmediato',payMethod:metodo,
+    paid:true,isSub:true,subId:pendingSubSale.subId,
+    date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()
+  });
+  // 2. Mark month as paid in subscription
+  const memberIdx=sub.members.findIndex(m=>m.clientId===clientId);
+  if(memberIdx>-1){
+    const member={...sub.members[memberIdx]};
+    const payments={...member.payments||{}};
+    const paidUntil=`${yr}-${String(mo).padStart(2,'0')}`;
+    // Mark all months up to this one as paid
+    for(let y=yr-3;y<=yr;y++){
+      for(let m2=0;m2<12;m2++){
+        if(y>yr||(y===yr&&m2>month)) break;
+        payments[`${y}-${m2}`]='paid';
+      }
+    }
+    member.payments=payments;
+    member.paidUntil=paidUntil;
+    const newMembers=[...sub.members];newMembers[memberIdx]=member;
+    await updateDoc(doc(db,'subscriptions',pendingSubSale.subId),{members:newMembers});
+  }
+  setSynced();clearOrder();closeModal('modal-sub-venta');
+  showToast(cl.name+' — '+sub.name+' '+MONTH_NAMES[month]+' registrado ✓','success');
+};
+
 </script>
 </body>
 </html>
