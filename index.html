@@ -1694,9 +1694,8 @@ function sortedProducts(list){
 }
 function renderProducts(){
   const s=document.getElementById('search-input').value.toLowerCase();
-  // Build virtual sub products
-  const now=new Date();const curYear=now.getFullYear();const curMonth=now.getMonth();
-  const subProducts=subscriptions.map(sub=>({
+  // Always include sub products as virtual items
+  const subProducts=subscriptions.filter(sub=>sub.cycle!=='anual').map(sub=>({
     id:'sub_'+sub.id,
     name:sub.name,
     cat:'Suscripciones',
@@ -1797,14 +1796,17 @@ window.confirmarAbonar=async function(){
   showToast(`$${monto.toFixed(2)} registrado a favor de ${c.name}`,'success');
 };
 window.addToOrder=function(prodId){
-  // Handle virtual sub products
-  const now=new Date();const cy=now.getFullYear();const cm=now.getMonth();
-  const subProds=subscriptions.map(sub=>({id:'sub_'+sub.id,name:sub.name,cat:'Suscripciones',price:sub.price,stock:99,minStock:0,photo:sub.logo||'',visible:true,isSub:true,subId:sub.id}));
+  const subProds=subscriptions.filter(sub=>sub.cycle!=='anual').map(sub=>({id:'sub_'+sub.id,name:sub.name,cat:'Suscripciones',price:sub.price,stock:99,minStock:0,photo:sub.logo||'',visible:true,isSub:true,subId:sub.id}));
   const prod=[...products,...subProds].find(p=>p.id===prodId);
   if(!prod||prod.stock===0)return;
   const ex=order.find(o=>o.prodId===prodId);
   if(ex){if(ex.qty>=prod.stock){showToast('Sin más stock','error');return;}ex.qty++;}
   else order.push({prodId,qty:1});
+  // Switch client selector based on product type
+  const hasSubInOrder=order.some(o=>o.prodId.startsWith('sub_'));
+  const hasTiendaInOrder=order.some(o=>!o.prodId.startsWith('sub_'));
+  if(hasSubInOrder&&!hasTiendaInOrder) populateClientSelect('sub');
+  else populateClientSelect('tiendita');
   renderOrder();showToast(`${prod.name} agregado`,'success');
 };
 window.changeQty=function(prodId,delta){
@@ -1862,7 +1864,7 @@ window.setMethod=function(method){
   document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('mth-'+method).classList.add('active');
 };
-window.clearOrder=function(){order=[];renderOrder();};
+window.clearOrder=function(){order=[];renderOrder();populateClientSelect('tiendita');};
 window.checkoutBase=async function(){
   const clientId=document.getElementById('order-client').value;
   if(!clientId){showToast('Selecciona un cliente','error');return;}
@@ -1885,13 +1887,21 @@ window.checkoutBase=async function(){
 };
 
 // CLIENTS
-function populateClientSelect(){
+function populateClientSelect(mode='tiendita'){
   const sel=document.getElementById('order-client');const cur=sel.value;
-  const tiendaClients=[...clients]
-    .filter(c=>!c.clientType||c.clientType==='tiendita'||c.clientType==='ambos')
-    .sort((a,b)=>a.name.localeCompare(b.name,'es'));
-  sel.innerHTML='<option value="">— Seleccionar cliente —</option>'+
-    tiendaClients.map(c=>`<option value="${c.id}">${c.name}${(c.credit||0)>0?' ★':''}</option>`).join('');
+  let list;
+  if(mode==='sub'){
+    list=[...clients]
+      .filter(c=>c.appShared)
+      .sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  } else {
+    list=[...clients]
+      .filter(c=>!c.clientType||c.clientType==='tiendita'||c.clientType==='ambos')
+      .sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  }
+  const label=mode==='sub'?'— Seleccionar cliente de App —':'— Seleccionar cliente —';
+  sel.innerHTML=`<option value="">${label}</option>`+
+    list.map(c=>`<option value="${c.id}">${c.name}${(c.credit||0)>0?' ★':''}</option>`).join('');
   if(cur)sel.value=cur;
 }
 const USER_ICON=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
@@ -2090,27 +2100,39 @@ window.toggleAppShared=async function(id,val){
   setSynced();
   showToast(val?'Cliente disponible en Suscripciones':'Removido de Suscripciones','success');
 };
-window.openStatement=function(clientId){
+window.openStatement=async function(clientId){
   const c=clients.find(x=>x.id===clientId);
-  const clientSales=sales.filter(s=>s.clientId===clientId&&!s.paid);
   const allSales=sales.filter(s=>s.clientId===clientId);
+  // Load cobros
+  const cobrosSnap=await getDocs(collection(db,'cobros'));
+  const cobros=cobrosSnap.docs.map(d=>({id:d.id,...d.data(),isCobro:true})).filter(co=>co.clientId===clientId);
+  // Merge and sort
+  const allMovements=[...allSales,...cobros].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
   document.getElementById('stmt-title').textContent=`CUENTA — ${c.name}`;
-  document.getElementById('stmt-period').textContent=`Historial completo · ${allSales.length} transacciones`;
-  const pendingTotal=clientSales.reduce((a,s)=>a+s.total,0);
+  document.getElementById('stmt-period').textContent=`Historial completo · ${allMovements.length} movimientos`;
+  const pendingTotal=allSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
   document.getElementById('stmt-total').textContent=pendingTotal>0?`$${pendingTotal.toFixed(2)}`:'Al día';
-  if(!allSales.length){
-    document.getElementById('stmt-body').innerHTML='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin ventas registradas</div>';
+  document.getElementById('stmt-total').style.color=pendingTotal>0?'var(--rojo)':'var(--verde)';
+  if(!allMovements.length){
+    document.getElementById('stmt-body').innerHTML='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin movimientos</div>';
   } else {
-    document.getElementById('stmt-body').innerHTML=allSales.map(s=>{
+    document.getElementById('stmt-body').innerHTML=allMovements.map(s=>{
+      if(s.isCobro){
+        return `<div class="stmt-row" style="border-left:3px solid var(--verde);padding-left:8px;margin-left:-8px">
+          <div class="stmt-date">${s.date||''} · <span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">ABONO</span></div>
+          <div class="stmt-items">${s.metodo||''}${s.nota?' · '+s.nota:''}</div>
+          <div class="stmt-amount" style="color:var(--verde)">-$${(s.monto||0).toFixed(2)}</div>
+        </div>`;
+      }
       const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
-      const statusColor=s.paid?'var(--verde)':'var(--rojo)';
+      const isPaid=s.paid;
       const typeBadge=s.isCargo
         ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
-        :'';
+        :s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">SUB</span>':'';
       return `<div class="stmt-row">
-        <div class="stmt-date">${s.date||''} · ${typeBadge}<span style="color:${statusColor};font-weight:600">${s.paid?'Pagado':'Pendiente'}</span></div>
+        <div class="stmt-date">${s.date||''} · ${typeBadge}<span style="color:${isPaid?'var(--verde)':'var(--rojo)'};font-weight:600">${isPaid?'Pagado':'Pendiente'}</span></div>
         <div class="stmt-items">${its}</div>
-        <div class="stmt-amount">$${s.total.toFixed(2)}</div>
+        <div class="stmt-amount" style="color:${isPaid?'var(--marino)':'var(--rojo)'}">$${s.total.toFixed(2)}</div>
       </div>`;
     }).join('');
   }
@@ -2937,15 +2959,24 @@ function checkCustomerView(){
     const hd=(client.debt||0)>0;
     document.getElementById('cv-status').textContent=hd?'Saldo pendiente':'Al día';
     document.getElementById('cv-status').style.color=hd?'#C8102E':'#16a34a';
+    // Real-time sales + cobros
     onSnapshot(query(collection(db,'sales'),orderBy('createdAt','desc')),ss=>{
-      const rows=ss.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.clientId===client.id);
-      const tbody=document.getElementById('cv-tbody');
-      if(!rows.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Sin movimientos</td></tr>';return;}
-      tbody.innerHTML=rows.map(s=>{
-        const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} x${i.qty}`).join(', ');
-        const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':'';
-        return `<tr><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#C8102E">$${s.total.toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${s.paid?'#d1fae5':'#fee2e2'};color:${s.paid?'#065f46':'#991b1b'}">${s.paid?'Pagado':'Pendiente'}</span></td></tr>`;
-      }).join('');
+      const salesRows=ss.docs.map(d=>({id:d.id,...d.data(),_type:'sale'})).filter(s=>s.clientId===client.id);
+      onSnapshot(query(collection(db,'cobros'),orderBy('createdAt','desc')),cs=>{
+        const cobroRows=cs.docs.map(d=>({id:d.id,...d.data(),_type:'cobro'})).filter(co=>co.clientId===client.id);
+        const allRows=[...salesRows,...cobroRows].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+        const tbody=document.getElementById('cv-tbody');
+        if(!allRows.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Sin movimientos</td></tr>';return;}
+        tbody.innerHTML=allRows.map(s=>{
+          if(s._type==='cobro'){
+            return `<tr style="background:#f0fdf4"><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px"><span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">ABONO</span>${s.metodo||''}${s.nota?' · '+s.nota:''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#16a34a">-$${(s.monto||0).toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:#d1fae5;color:#065f46">Pagado</span></td></tr>`;
+          }
+          const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} x${i.qty}`).join(', ');
+          const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">SUB</span>':'';
+          const isPaid=s.paid;
+          return `<tr><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:${isPaid?'#0C2340':'#C8102E'}">$${s.total.toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${isPaid?'#d1fae5':'#fee2e2'};color:${isPaid?'#065f46':'#991b1b'}">${isPaid?'Pagado':'Pendiente'}</span></td></tr>`;
+        }).join('');
+      });
     });
   });
 }
