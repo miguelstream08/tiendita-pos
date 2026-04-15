@@ -2101,41 +2101,121 @@ window.toggleAppShared=async function(id,val){
   showToast(val?'Cliente disponible en Suscripciones':'Removido de Suscripciones','success');
 };
 window.openStatement=async function(clientId){
-  const c=clients.find(x=>x.id===clientId);
-  const allSales=sales.filter(s=>s.clientId===clientId);
-  // Load cobros
+  const cl=clients.find(x=>x.id===clientId);
+
+  // Load all data
   const cobrosSnap=await getDocs(collection(db,'cobros'));
-  const cobros=cobrosSnap.docs.map(d=>({id:d.id,...d.data(),isCobro:true})).filter(co=>co.clientId===clientId);
-  // Merge and sort
-  const allMovements=[...allSales,...cobros].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-  document.getElementById('stmt-title').textContent=`CUENTA — ${c.name}`;
-  document.getElementById('stmt-period').textContent=`Historial completo · ${allMovements.length} movimientos`;
-  const pendingTotal=allSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
-  document.getElementById('stmt-total').textContent=pendingTotal>0?`$${pendingTotal.toFixed(2)}`:'Al día';
-  document.getElementById('stmt-total').style.color=pendingTotal>0?'var(--rojo)':'var(--verde)';
-  if(!allMovements.length){
-    document.getElementById('stmt-body').innerHTML='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin movimientos</div>';
-  } else {
-    document.getElementById('stmt-body').innerHTML=allMovements.map(s=>{
-      if(s.isCobro){
-        return `<div class="stmt-row" style="border-left:3px solid var(--verde);padding-left:8px;margin-left:-8px">
-          <div class="stmt-date">${s.date||''} · <span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">ABONO</span></div>
-          <div class="stmt-items">${s.metodo||''}${s.nota?' · '+s.nota:''}</div>
-          <div class="stmt-amount" style="color:var(--verde)">-$${(s.monto||0).toFixed(2)}</div>
-        </div>`;
-      }
-      const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
-      const isPaid=s.paid;
-      const typeBadge=s.isCargo
-        ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
-        :s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">SUB</span>':'';
-      return `<div class="stmt-row">
-        <div class="stmt-date">${s.date||''} · ${typeBadge}<span style="color:${isPaid?'var(--verde)':'var(--rojo)'};font-weight:600">${isPaid?'Pagado':'Pendiente'}</span></div>
-        <div class="stmt-items">${its}</div>
-        <div class="stmt-amount" style="color:${isPaid?'var(--marino)':'var(--rojo)'}">$${s.total.toFixed(2)}</div>
-      </div>`;
-    }).join('');
+  const allCobros=cobrosSnap.docs.map(d=>({id:d.id,...d.data(),isCobro:true}))
+    .filter(co=>co.clientId===clientId)
+    .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+  const allSales=sales.filter(s=>s.clientId===clientId)
+    .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+
+  // ── BORRÓN Y CUENTA NUEVA ──
+  // Find last cobro where debt reached 0 (full payment)
+  // We use createdAt of last cobro that zeroed the account
+  const lastResetTs=(cl.lastResetAt||0); // stored in Firebase when debt hits 0
+  const sinceTs=lastResetTs;
+
+  // Filter movements after last reset
+  const visibleSales=allSales.filter(s=>(s.createdAt?.seconds||0)>=sinceTs);
+  const visibleCobros=allCobros.filter(co=>(co.createdAt?.seconds||0)>=sinceTs);
+
+  // ── WEEKLY CUT (viernes a jueves) ──
+  // cutDay: 5=viernes (JS: 0=dom,1=lun,...,5=vie,6=sab)
+  const cutDayJS=cutDay; // 5=Friday
+  const now=new Date();
+
+  // Find last cut date (most recent past cutDay)
+  function getLastCutDate(){
+    const d=new Date(now);
+    const dayOfWeek=d.getDay();
+    let daysBack=(dayOfWeek-cutDayJS+7)%7;
+    if(daysBack===0) daysBack=0; // today is cut day
+    d.setDate(d.getDate()-daysBack);
+    d.setHours(0,0,0,0);
+    return d;
   }
+  // Find previous cut date (the one before last)
+  function getPrevCutDate(){
+    const last=getLastCutDate();
+    const prev=new Date(last);
+    prev.setDate(prev.getDate()-7);
+    return prev;
+  }
+
+  const lastCut=getLastCutDate();
+  const prevCut=getPrevCutDate();
+  const lastCutTs=lastCut.getTime()/1000;
+  const prevCutTs=prevCut.getTime()/1000;
+
+  // Group movements into: before prevCut (archived), prevCut→lastCut (current period = to collect today), after lastCut (next period)
+  const allVisible=[...visibleSales,...visibleCobros].sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+
+  const periodoPasado=allVisible.filter(m=>(m.createdAt?.seconds||0)<lastCutTs);
+  const periodoActual=allVisible.filter(m=>(m.createdAt?.seconds||0)>=lastCutTs);
+
+  // Pending total = sum of unpaid sales in all visible
+  const pendingTotal=visibleSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
+  const pendingPasado=visibleSales.filter(s=>!s.paid&&(s.createdAt?.seconds||0)<lastCutTs).reduce((a,s)=>a+s.total,0);
+
+  document.getElementById('stmt-title').textContent=`CUENTA — ${cl.name}`;
+  document.getElementById('stmt-period').textContent=`Desde último pago completo · Corte: ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}`;
+  document.getElementById('stmt-total').textContent=pendingTotal>0?`$${pendingTotal.toFixed(2)}`:'Al día ✓';
+  document.getElementById('stmt-total').style.color=pendingTotal>0?'var(--rojo)':'var(--verde)';
+
+  function renderMovement(s){
+    if(s.isCobro){
+      return `<div class="stmt-row" style="border-left:3px solid var(--verde);padding-left:8px;margin-left:-8px">
+        <div class="stmt-date">${s.date||''} · <span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">ABONO</span></div>
+        <div class="stmt-items">${s.metodo||''}${s.nota?' · '+s.nota:''}</div>
+        <div class="stmt-amount" style="color:var(--verde)">-$${(s.monto||0).toFixed(2)}</div>
+      </div>`;
+    }
+    const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
+    const isPaid=s.paid;
+    const badge=s.isCargo
+      ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
+      :s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">SUB</span>':'';
+    return `<div class="stmt-row">
+      <div class="stmt-date">${s.date||''} · ${badge}<span style="color:${isPaid?'var(--verde)':'var(--rojo)'};font-weight:600">${isPaid?'Pagado':'Pendiente'}</span></div>
+      <div class="stmt-items">${its}</div>
+      <div class="stmt-amount" style="color:${isPaid?'var(--marino)':'var(--rojo)'}">$${s.total.toFixed(2)}</div>
+    </div>`;
+  }
+
+  let html='';
+
+  if(!allVisible.length){
+    html='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin movimientos desde el último pago</div>';
+  } else {
+    // PERIODO PASADO (lunes a jueves = cobrar este viernes)
+    if(periodoPasado.length){
+      html+=`<div style="background:var(--rojo);color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:14px">🔔 COBRAR HOY — ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:700">$${pendingPasado.toFixed(2)}</span>
+      </div>`;
+      html+=periodoPasado.map(renderMovement).join('');
+    }
+
+    // DIVIDER
+    if(periodoPasado.length&&periodoActual.length){
+      html+=`<div style="display:flex;align-items:center;gap:8px;margin:12px 0">
+        <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
+        <span style="font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">
+          Próximo corte · desde ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}
+        </span>
+        <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
+      </div>`;
+    }
+
+    // PERIODO ACTUAL (después del último corte = cobrar próximo viernes)
+    if(periodoActual.length){
+      html+=periodoActual.map(renderMovement).join('');
+    }
+  }
+
+  document.getElementById('stmt-body').innerHTML=html;
   openModal('modal-statement');
 };
 window.openPago=function(clientId){
@@ -2888,14 +2968,29 @@ window.confirmarCobro=async function(){
   }
   const cl=clients.find(x=>x.id===cobroClientId);
   setSyncing();
-  await updateDoc(doc(db,'clients',cobroClientId),{debt:Math.max(0,(cl.debt||0)-monto)});
+  const currentDebt=cl.debt||0;
+  // ── Saldo a favor: solo aplica si deuda queda en exacto 0 ──
+  const montoEfectivo=Math.min(monto,currentDebt); // never overpay
+  const newDebt=Math.max(0,currentDebt-monto);
+  const updateData={debt:newDebt};
+  // ── Borrón y cuenta nueva: si queda en 0, guardar timestamp ──
+  if(newDebt===0){
+    updateData.lastResetAt=Math.floor(Date.now()/1000);
+    // Mark all pending sales as paid
+    const pendingSales=sales.filter(s=>s.clientId===cobroClientId&&!s.paid);
+    for(const s of pendingSales) await updateDoc(doc(db,'sales',s.id),{paid:true});
+  }
+  // Clear saldo a favor si todavía debe
+  if(newDebt>0&&(cl.credit||0)>0) updateData.credit=0;
+  await updateDoc(doc(db,'clients',cobroClientId),updateData);
   await addDoc(collection(db,'cobros'),{
     clientId:cobroClientId,clientName:cl.name,
-    monto,metodo:metodoDesc,nota:nota||'',
+    monto:montoEfectivo,metodo:metodoDesc,nota:nota||'',
     date:new Date().toLocaleString('es-MX'),createdAt:serverTimestamp()
   });
   setSynced();closeModal('modal-cobro');
-  showToast('$'+monto.toFixed(2)+' cobrado — '+metodoDesc,'success');
+  if(newDebt===0) showToast(`${cl.name} — Cuenta liquidada ✓ Borrón y cuenta nueva`,'success');
+  else showToast('$'+montoEfectivo.toFixed(2)+' cobrado — Resta $'+newDebt.toFixed(2),'success');
 };
 
 // ── COMPRA DE PRODUCTO ──
