@@ -1543,11 +1543,15 @@ const defaultClients=[
 ];
 
 async function seedIfEmpty(){
-  const snap=await getDocs(collection(db,'products'));
-  if(snap.empty){
+  const [prodSnap,clientSnap]=await Promise.all([
+    getDocs(collection(db,'products')),
+    getDocs(collection(db,'clients'))
+  ]);
+  // Only seed if BOTH are empty — never add default data on top of real data
+  if(prodSnap.empty&&clientSnap.empty){
     setSyncing();
     for(const p of defaultProducts) await addDoc(collection(db,'products'),{...p,createdAt:serverTimestamp()});
-    for(const c of defaultClients) await addDoc(collection(db,'clients'),{...c,createdAt:serverTimestamp()});
+    for(const cl of defaultClients) await addDoc(collection(db,'clients'),{...cl,createdAt:serverTimestamp()});
     await setDoc(doc(db,'config','inversion'),{total:0});
     await setDoc(doc(db,'config','store'),{name:'La Tiendita',logo:'',cutDay:5});
   }
@@ -1608,7 +1612,21 @@ window.renderSubsGrid=function renderSubsGrid(){
 
 function startListeners(){
   onSnapshot(collection(db,'products'),snap=>{products=snap.docs.map(d=>({id:d.id,...d.data()}));renderCategories();renderProducts();if(document.getElementById('view-inventario').classList.contains('active'))renderInventario();if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();},()=>setSyncError());
-  onSnapshot(collection(db,'clients'),snap=>{clients=snap.docs.map(d=>({id:d.id,...d.data()}));populateClientSelect();if(document.getElementById('view-clientes').classList.contains('active'))renderClients();if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();renderSubsGrid();},()=>setSyncError());
+  onSnapshot(collection(db,'clients'),snap=>{
+  clients=snap.docs.map(d=>({id:d.id,...d.data()}));
+  // Auto-apply saldo a favor against pending debt
+  clients.forEach(async cl=>{
+    if((cl.credit||0)>0&&(cl.debt||0)>0){
+      const newDebt=Math.max(0,(cl.debt||0)-(cl.credit||0));
+      const newCredit=Math.max(0,(cl.credit||0)-(cl.debt||0));
+      await updateDoc(doc(db,'clients',cl.id),{debt:newDebt,credit:newCredit});
+    }
+  });
+  populateClientSelect();
+  if(document.getElementById('view-clientes').classList.contains('active'))renderClients();
+  if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();
+  renderSubsGrid();
+},()=>setSyncError());
   onSnapshot(query(collection(db,'sales'),orderBy('createdAt','desc')),snap=>{sales=snap.docs.map(d=>({id:d.id,...d.data()}));if(document.getElementById('view-ventas').classList.contains('active'))renderVentas();if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();},()=>setSyncError());
   onSnapshot(collection(db,'subscriptions'),snap=>{subscriptions=snap.docs.map(d=>({id:d.id,...d.data()}));if(document.getElementById('view-suscripciones').classList.contains('active'))renderSubsGrid();},()=>setSyncError());
   onSnapshot(doc(db,'config','inversion'),snap=>{if(snap.exists())inversion=snap.data().total||0;if(currentUser&&document.getElementById('view-dashboard').classList.contains('active'))renderDashboard();},()=>{});
@@ -2103,115 +2121,87 @@ window.toggleAppShared=async function(id,val){
 window.openStatement=async function(clientId){
   const cl=clients.find(x=>x.id===clientId);
 
-  // Load all data
-  const cobrosSnap=await getDocs(collection(db,'cobros'));
-  const allCobros=cobrosSnap.docs.map(d=>({id:d.id,...d.data(),isCobro:true}))
-    .filter(co=>co.clientId===clientId)
-    .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-  const allSales=sales.filter(s=>s.clientId===clientId)
-    .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+  // ── WEEKLY CUT LOGIC ──
+  // Week runs: Friday → Thursday (viernes a jueves)
+  // cutDay=5 = Friday (JS: Sun=0,Mon=1,...,Fri=5,Sat=6)
+  const now=new Date();
+  const dayOfWeek=now.getDay(); // 0=Sun...5=Fri...6=Sat
+  // Days since last Friday
+  const daysSinceFri=(dayOfWeek-cutDay+7)%7;
+  const lastFriday=new Date(now);
+  lastFriday.setDate(now.getDate()-daysSinceFri);
+  lastFriday.setHours(0,0,0,0);
+  const lastFridayTs=Math.floor(lastFriday.getTime()/1000);
 
-  // ── BORRÓN Y CUENTA NUEVA ──
-  // Find last cobro where debt reached 0 (full payment)
-  // We use createdAt of last cobro that zeroed the account
-  const lastResetTs=(cl.lastResetAt||0); // stored in Firebase when debt hits 0
+  // ── BORRÓN: filter from lastResetAt ──
+  const lastResetTs=cl.lastResetAt||0;
+  // Show only from the latest of: lastReset or lastFriday-7days (one full week back max)
+  // Actually show from lastReset only — that's the borrón
   const sinceTs=lastResetTs;
 
-  // Filter movements after last reset
-  const visibleSales=allSales.filter(s=>(s.createdAt?.seconds||0)>=sinceTs);
-  const visibleCobros=allCobros.filter(co=>(co.createdAt?.seconds||0)>=sinceTs);
+  // Load cobros
+  const cobrosSnap=await getDocs(collection(db,'cobros'));
+  const allCobros=cobrosSnap.docs.map(d=>({id:d.id,...d.data(),isCobro:true}))
+    .filter(co=>co.clientId===clientId&&(co.createdAt?.seconds||0)>=sinceTs);
 
-  // ── WEEKLY CUT (viernes a jueves) ──
-  // cutDay: 5=viernes (JS: 0=dom,1=lun,...,5=vie,6=sab)
-  const cutDayJS=cutDay; // 5=Friday
-  const now=new Date();
+  // All sales since reset
+  const allSales=sales
+    .filter(s=>s.clientId===clientId&&(s.createdAt?.seconds||0)>=sinceTs)
+    .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
-  // Find last cut date (most recent past cutDay)
-  function getLastCutDate(){
-    const d=new Date(now);
-    const dayOfWeek=d.getDay();
-    let daysBack=(dayOfWeek-cutDayJS+7)%7;
-    if(daysBack===0) daysBack=0; // today is cut day
-    d.setDate(d.getDate()-daysBack);
-    d.setHours(0,0,0,0);
-    return d;
-  }
-  // Find previous cut date (the one before last)
-  function getPrevCutDate(){
-    const last=getLastCutDate();
-    const prev=new Date(last);
-    prev.setDate(prev.getDate()-7);
-    return prev;
-  }
+  // ── SPLIT BY CUT DAY ──
+  // "Cobrar hoy" = unpaid sales BEFORE today's cut (viernes pasado → jueves)
+  // "Próxima semana" = sales FROM this Friday onwards
+  const cobrarHoy=allSales.filter(s=>!s.paid&&(s.createdAt?.seconds||0)<lastFridayTs);
+  const proxSemana=allSales.filter(s=>!s.paid&&(s.createdAt?.seconds||0)>=lastFridayTs);
 
-  const lastCut=getLastCutDate();
-  const prevCut=getPrevCutDate();
-  const lastCutTs=lastCut.getTime()/1000;
-  const prevCutTs=prevCut.getTime()/1000;
-
-  // Group movements into: before prevCut (archived), prevCut→lastCut (current period = to collect today), after lastCut (next period)
-  const allVisible=[...visibleSales,...visibleCobros].sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-
-  const periodoPasado=allVisible.filter(m=>(m.createdAt?.seconds||0)<lastCutTs);
-  const periodoActual=allVisible.filter(m=>(m.createdAt?.seconds||0)>=lastCutTs);
-
-  // Pending total = sum of unpaid sales in all visible
-  const pendingTotal=visibleSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
-  const pendingPasado=visibleSales.filter(s=>!s.paid&&(s.createdAt?.seconds||0)<lastCutTs).reduce((a,s)=>a+s.total,0);
+  const totalCobrarHoy=cobrarHoy.reduce((a,s)=>a+s.total,0);
+  const totalProxSemana=proxSemana.reduce((a,s)=>a+s.total,0);
+  const totalPending=totalCobrarHoy+totalProxSemana;
 
   document.getElementById('stmt-title').textContent=`CUENTA — ${cl.name}`;
-  document.getElementById('stmt-period').textContent=`Desde último pago completo · Corte: ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}`;
-  document.getElementById('stmt-total').textContent=pendingTotal>0?`$${pendingTotal.toFixed(2)}`:'Al día ✓';
-  document.getElementById('stmt-total').style.color=pendingTotal>0?'var(--rojo)':'var(--verde)';
+  document.getElementById('stmt-period').textContent=`Corte: ${lastFriday.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})} · Solo saldo pendiente`;
+  document.getElementById('stmt-total').textContent=totalPending>0?`$${totalPending.toFixed(2)}`:'Al día ✓';
+  document.getElementById('stmt-total').style.color=totalPending>0?'var(--rojo)':'var(--verde)';
 
-  function renderMovement(s){
-    if(s.isCobro){
-      return `<div class="stmt-row" style="border-left:3px solid var(--verde);padding-left:8px;margin-left:-8px">
-        <div class="stmt-date">${s.date||''} · <span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">ABONO</span></div>
-        <div class="stmt-items">${s.metodo||''}${s.nota?' · '+s.nota:''}</div>
-        <div class="stmt-amount" style="color:var(--verde)">-$${(s.monto||0).toFixed(2)}</div>
-      </div>`;
-    }
+  function renderRow(s){
+    if(s.isCobro) return ''; // cobros are hidden — only show pending sales
     const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
-    const isPaid=s.paid;
     const badge=s.isCargo
       ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
       :s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">SUB</span>':'';
     return `<div class="stmt-row">
-      <div class="stmt-date">${s.date||''} · ${badge}<span style="color:${isPaid?'var(--verde)':'var(--rojo)'};font-weight:600">${isPaid?'Pagado':'Pendiente'}</span></div>
+      <div class="stmt-date">${s.date||''} · ${badge}<span style="color:var(--rojo);font-weight:600">Pendiente</span></div>
       <div class="stmt-items">${its}</div>
-      <div class="stmt-amount" style="color:${isPaid?'var(--marino)':'var(--rojo)'}">$${s.total.toFixed(2)}</div>
+      <div class="stmt-amount" style="color:var(--rojo)">$${s.total.toFixed(2)}</div>
     </div>`;
   }
 
   let html='';
 
-  if(!allVisible.length){
-    html='<div style="color:var(--gris);font-size:13px;padding:12px 0">Sin movimientos desde el último pago</div>';
+  if(!totalPending){
+    html='<div style="color:var(--verde);font-size:14px;font-weight:600;padding:16px 0;text-align:center">✓ Al día — sin saldo pendiente</div>';
   } else {
-    // PERIODO PASADO (lunes a jueves = cobrar este viernes)
-    if(periodoPasado.length){
-      html+=`<div style="background:var(--rojo);color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:14px">🔔 COBRAR HOY — ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}</span>
-        <span style="font-family:'DM Mono',monospace;font-weight:700">$${pendingPasado.toFixed(2)}</span>
+    // COBRAR HOY section
+    if(cobrarHoy.length){
+      html+=`<div style="background:var(--rojo);color:#fff;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:14px">🔔 COBRAR HOY — ${lastFriday.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'}).toUpperCase()}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px">$${totalCobrarHoy.toFixed(2)}</span>
       </div>`;
-      html+=periodoPasado.map(renderMovement).join('');
+      html+=cobrarHoy.map(renderRow).join('');
     }
 
-    // DIVIDER
-    if(periodoPasado.length&&periodoActual.length){
+    // PRÓXIMA SEMANA section
+    if(proxSemana.length){
       html+=`<div style="display:flex;align-items:center;gap:8px;margin:12px 0">
         <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
-        <span style="font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">
-          Próximo corte · desde ${lastCut.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}
-        </span>
+        <span style="font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">Se cobra la semana siguiente</span>
         <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
       </div>`;
-    }
-
-    // PERIODO ACTUAL (después del último corte = cobrar próximo viernes)
-    if(periodoActual.length){
-      html+=periodoActual.map(renderMovement).join('');
+      html+=proxSemana.map(renderRow).join('');
+      if(totalProxSemana>0){
+        html+=`<div style="text-align:right;font-size:11px;color:var(--gris);margin-top:6px;font-family:'DM Mono',monospace">Próxima semana: $${totalProxSemana.toFixed(2)}</div>`;
+      }
     }
   }
 
@@ -3044,7 +3034,7 @@ function checkCustomerView(){
   const slug=new URLSearchParams(window.location.search).get('cuenta');
   if(!slug) return;
   document.getElementById('loading-screen').style.display='none';
-  document.body.innerHTML=`<div style="min-height:100vh;background:#F5F0E8;font-family:'DM Sans',sans-serif"><div style="background:#0C2340;padding:16px 20px;display:flex;align-items:center;gap:12px"><div style="background:#C8102E;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:18px;color:#fff">T</div><div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:#F5F0E8">LA <span style="color:#C8102E">TIENDITA</span></div></div><div style="max-width:600px;margin:0 auto;padding:20px"><div style="background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a;margin-bottom:4px">Estado de cuenta</div><div id="cv-name" style="font-family:'Bebas Neue',cursive;font-size:28px;color:#0C2340">Cargando...</div><div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:#8a8a9a;text-transform:uppercase">Saldo pendiente</div><div id="cv-debt" style="font-family:monospace;font-size:32px;font-weight:700;color:#C8102E">...</div></div><div id="cv-status" style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:20px;background:#f0eee9">...</div></div></div><div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="background:#0C2340;padding:12px 16px;font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:1px;color:#F5F0E8">HISTORIAL</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f0eee9"><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Fecha</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Concepto</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Monto</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Estado</th></tr></thead><tbody id="cv-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando...</td></tr></tbody></table></div></div><div style="text-align:center;padding:20px;font-size:11px;color:#8a8a9a">La Tiendita de Don Migue · Solo lectura</div></div></div>`;
+  document.body.innerHTML=`<div style="min-height:100vh;background:#F5F0E8;font-family:'DM Sans',sans-serif"><div style="background:#0C2340;padding:16px 20px;display:flex;align-items:center;gap:12px"><div style="background:#C8102E;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:18px;color:#fff">T</div><div style="font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:#F5F0E8">LA <span style="color:#C8102E">TIENDITA</span></div></div><div style="max-width:600px;margin:0 auto;padding:20px"><div style="background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#8a8a9a;margin-bottom:4px">Estado de cuenta</div><div id="cv-name" style="font-family:'Bebas Neue',cursive;font-size:28px;color:#0C2340">Cargando...</div><div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:#8a8a9a;text-transform:uppercase">Saldo pendiente</div><div id="cv-debt" style="font-family:monospace;font-size:32px;font-weight:700;color:#C8102E">...</div></div><div id="cv-status" style="font-size:13px;font-weight:600;padding:6px 14px;border-radius:20px;background:#f0eee9">...</div></div></div><div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(12,35,64,.08)"><div style="background:#0C2340;padding:12px 16px;font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:1px;color:#F5F0E8">HISTORIAL</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f0eee9"><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Fecha</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Concepto</th><th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#8a8a9a">Monto</th></tr></thead><tbody id="cv-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:#999">Cargando...</td></tr></tbody></table></div></div><div style="text-align:center;padding:20px;font-size:11px;color:#8a8a9a">La Tiendita de Don Migue · Solo lectura</div></div></div>`;
   onSnapshot(collection(db,'clients'),snap=>{
     const cls=snap.docs.map(d=>({id:d.id,...d.data()}));
     const client=cls.find(cc=>cc.slug===slug);
@@ -3054,24 +3044,31 @@ function checkCustomerView(){
     const hd=(client.debt||0)>0;
     document.getElementById('cv-status').textContent=hd?'Saldo pendiente':'Al día';
     document.getElementById('cv-status').style.color=hd?'#C8102E':'#16a34a';
-    // Real-time sales + cobros
+    // Real-time — only unpaid sales since last reset
     onSnapshot(query(collection(db,'sales'),orderBy('createdAt','desc')),ss=>{
-      const salesRows=ss.docs.map(d=>({id:d.id,...d.data(),_type:'sale'})).filter(s=>s.clientId===client.id);
-      onSnapshot(query(collection(db,'cobros'),orderBy('createdAt','desc')),cs=>{
-        const cobroRows=cs.docs.map(d=>({id:d.id,...d.data(),_type:'cobro'})).filter(co=>co.clientId===client.id);
-        const allRows=[...salesRows,...cobroRows].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-        const tbody=document.getElementById('cv-tbody');
-        if(!allRows.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">Sin movimientos</td></tr>';return;}
-        tbody.innerHTML=allRows.map(s=>{
-          if(s._type==='cobro'){
-            return `<tr style="background:#f0fdf4"><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px"><span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">ABONO</span>${s.metodo||''}${s.nota?' · '+s.nota:''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#16a34a">-$${(s.monto||0).toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:#d1fae5;color:#065f46">Pagado</span></td></tr>`;
-          }
-          const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} x${i.qty}`).join(', ');
-          const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">SUB</span>':'';
-          const isPaid=s.paid;
-          return `<tr><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:${isPaid?'#0C2340':'#C8102E'}">$${s.total.toFixed(2)}</td><td style="padding:10px 12px;border-bottom:1px solid #f0eee9"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${isPaid?'#d1fae5':'#fee2e2'};color:${isPaid?'#065f46':'#991b1b'}">${isPaid?'Pagado':'Pendiente'}</span></td></tr>`;
-        }).join('');
-      });
+      const sinceTs=client.lastResetAt||0;
+      const pendingRows=ss.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(s=>s.clientId===client.id&&!s.paid&&(s.createdAt?.seconds||0)>=sinceTs)
+        .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+      const tbody=document.getElementById('cv-tbody');
+      const total=pendingRows.reduce((a,s)=>a+s.total,0);
+      // Update debt display
+      document.getElementById('cv-debt').textContent='$'+total.toFixed(2);
+      document.getElementById('cv-status').textContent=total>0?'Saldo pendiente':'Al día ✓';
+      document.getElementById('cv-status').style.color=total>0?'#C8102E':'#16a34a';
+      if(!pendingRows.length){
+        tbody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:#16a34a;font-weight:600">✓ Al día — sin saldo pendiente</td></tr>';
+        return;
+      }
+      tbody.innerHTML=pendingRows.map(s=>{
+        const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} ×${i.qty}`).join(', ');
+        const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">SUB</span>':'';
+        return `<tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a">${s.date||''}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#C8102E">$${s.total.toFixed(2)}</td>
+        </tr>`;
+      }).join('');
     });
   });
 }
