@@ -3105,41 +3105,53 @@ function checkCustomerView(){
       const prevFridayTs=Math.floor(prevFriday.getTime()/1000);
 
       const sinceTs=client.lastResetAt||0;
+
+      // ── Weekly cut for client view ──
+      // Show: from last Friday (inclusive) up to today
+      // Hide: from next Friday onwards (appears next week)
+      // If today IS Friday: show prevFriday→yesterday (Thu), hide today onwards
+      const nowCV=new Date();
+      const todayDayCV=nowCV.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+      const cutJS=5; // Friday
+      const daysBackCV=(todayDayCV-cutJS+7)%7; // days since last Friday
+      // If today is Friday (daysBack=0), we still want LAST week's Friday
+      const effectiveDaysBack=daysBackCV===0?7:daysBackCV;
+      const lastFriCV=new Date(nowCV);
+      lastFriCV.setDate(nowCV.getDate()-effectiveDaysBack);
+      lastFriCV.setHours(0,0,0,0);
+      const lastFriTs=Math.floor(lastFriCV.getTime()/1000);
+      // Next Friday = lastFriday + 7 days — exclude from display
+      const nextFriCV=new Date(lastFriCV);
+      nextFriCV.setDate(lastFriCV.getDate()+7);
+      const nextFriTs=Math.floor(nextFriCV.getTime()/1000);
+
       const allPending=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(s=>s.clientId===client.id&&!s.paid&&(s.createdAt?.seconds||0)>=sinceTs)
+        .filter(s=>{
+          const ts=s.createdAt?.seconds||0;
+          return s.clientId===client.id&&!s.paid&&ts>=sinceTs&&ts>=lastFriTs&&ts<nextFriTs;
+        })
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
-      // Current period: from prevFriday up to (but NOT including) lastFriday
-      // i.e. viernes pasado → jueves de hoy
-      // If today is Friday: show prevFriday→lastFriday (the period just closed)
-      // Exclude anything from lastFriday onwards (goes to next week)
-      const currentPeriod=allPending.filter(s=>{
-        const ts=s.createdAt?.seconds||0;
-        return ts>=prevFridayTs && ts<lastFridayTs;
-      });
-      // Next period: from lastFriday onwards — NOT shown today
-      // (they'll appear next Friday)
-
-      const total=currentPeriod.reduce((a,s)=>a+s.total,0);
+      const total=allPending.reduce((a,s)=>a+s.total,0);
       document.getElementById('cv-debt').textContent='$'+total.toFixed(2);
-      document.getElementById('cv-status').textContent=total>0?'A pagar este viernes':'Al día ✓';
+      document.getElementById('cv-status').textContent=total>0?'Saldo pendiente':'Al día ✓';
       document.getElementById('cv-status').style.color=total>0?'#C8102E':'#16a34a';
 
       const tbody=document.getElementById('cv-tbody');
-      if(!currentPeriod.length){
-        tbody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:#16a34a;font-weight:600">✓ Sin consumo pendiente este periodo</td></tr>';
+      if(!allPending.length){
+        tbody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:#16a34a;font-weight:600">✓ Sin consumo pendiente</td></tr>';
       } else {
-        // Split: Friday items vs Mon-Thu items (different row color)
-        tbody.innerHTML=currentPeriod.map(s=>{
+        // Friday rows get orange tint + VIE badge — no delete button
+        tbody.innerHTML=allPending.map(s=>{
           const ts=s.createdAt?.seconds||0;
           const sDate=new Date(ts*1000);
           const isFriday=sDate.getDay()===cutDayJS;
-          const rowBg=isFriday?'background:#fff7ed':''; // orange tint for Friday items
+          const rowBg=isFriday?'background:#fff7ed':'';
           const items=(s.items||[]).map(i=>s.isCargo?i.name:`${i.name} ×${i.qty}`).join(', ');
           const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">SUB</span>':'';
-          const dayLabel=isFriday?'<span style="background:#fed7aa;color:#9a3412;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px">VIE</span>':'';
+          const friTag=isFriday?'<span style="background:#fed7aa;color:#9a3412;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px">VIE</span>':'';
           return `<tr style="${rowBg}">
-            <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a;white-space:nowrap">${s.date||''}${dayLabel}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:11px;color:#8a8a9a;white-space:nowrap">${s.date||''}${friTag}</td>
             <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-size:12px">${badge}${items}</td>
             <td style="padding:10px 12px;border-bottom:1px solid #f0eee9;font-family:monospace;font-size:13px;font-weight:700;color:#C8102E">$${s.total.toFixed(2)}</td>
           </tr>`;
