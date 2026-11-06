@@ -3104,32 +3104,25 @@ function checkCustomerView(){
       prevFriday.setDate(lastFriday.getDate()-7);
       const prevFridayTs=Math.floor(prevFriday.getTime()/1000);
 
-      const sinceTs=client.lastResetAt||0;
-
-      // ── Weekly cut: only hide THIS week's Friday-onwards ──
-      // Show everything pending since lastReset EXCEPT what was consumed
-      // from THIS Friday (today or the most recent Friday) onwards
+      // ── Weekly cut: hide only THIS Friday onwards ──
       const nowCV=new Date();
-      const todayDayCV=nowCV.getDay(); // 5=Fri
-      const cutJS=5;
-      // Find the start of THIS Friday (today if Fri, else next Fri)
+      const todayDayCV=nowCV.getDay();
+      const cutJS=5; // Friday
       let thisFriCV=new Date(nowCV);
       if(todayDayCV===cutJS){
-        // Today IS Friday — hide today's consumption (from midnight today)
-        thisFriCV.setHours(0,0,0,0);
+        thisFriCV.setHours(0,0,0,0); // today is Friday — hide from midnight today
       } else {
-        // Find next Friday
         const daysUntilFri=(cutJS-todayDayCV+7)%7;
         thisFriCV.setDate(nowCV.getDate()+daysUntilFri);
         thisFriCV.setHours(0,0,0,0);
       }
       const thisFriTs=Math.floor(thisFriCV.getTime()/1000);
 
-      // Show ALL pending since lastReset, but exclude from this Friday onwards
+      // Show ALL unpaid — no lastResetAt filter, only hide this Friday onwards
       const allPending=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(s=>{
           const ts=s.createdAt?.seconds||0;
-          return s.clientId===client.id&&!s.paid&&ts>=sinceTs&&ts<thisFriTs;
+          return s.clientId===client.id&&!s.paid&&ts<thisFriTs;
         })
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
