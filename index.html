@@ -3106,29 +3106,30 @@ function checkCustomerView(){
 
       const sinceTs=client.lastResetAt||0;
 
-      // ── Weekly cut for client view ──
-      // Show: from last Friday (inclusive) up to today
-      // Hide: from next Friday onwards (appears next week)
-      // If today IS Friday: show prevFriday→yesterday (Thu), hide today onwards
+      // ── Weekly cut: only hide THIS week's Friday-onwards ──
+      // Show everything pending since lastReset EXCEPT what was consumed
+      // from THIS Friday (today or the most recent Friday) onwards
       const nowCV=new Date();
-      const todayDayCV=nowCV.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-      const cutJS=5; // Friday
-      const daysBackCV=(todayDayCV-cutJS+7)%7; // days since last Friday
-      // If today is Friday (daysBack=0), we still want LAST week's Friday
-      const effectiveDaysBack=daysBackCV===0?7:daysBackCV;
-      const lastFriCV=new Date(nowCV);
-      lastFriCV.setDate(nowCV.getDate()-effectiveDaysBack);
-      lastFriCV.setHours(0,0,0,0);
-      const lastFriTs=Math.floor(lastFriCV.getTime()/1000);
-      // Next Friday = lastFriday + 7 days — exclude from display
-      const nextFriCV=new Date(lastFriCV);
-      nextFriCV.setDate(lastFriCV.getDate()+7);
-      const nextFriTs=Math.floor(nextFriCV.getTime()/1000);
+      const todayDayCV=nowCV.getDay(); // 5=Fri
+      const cutJS=5;
+      // Find the start of THIS Friday (today if Fri, else next Fri)
+      let thisFriCV=new Date(nowCV);
+      if(todayDayCV===cutJS){
+        // Today IS Friday — hide today's consumption (from midnight today)
+        thisFriCV.setHours(0,0,0,0);
+      } else {
+        // Find next Friday
+        const daysUntilFri=(cutJS-todayDayCV+7)%7;
+        thisFriCV.setDate(nowCV.getDate()+daysUntilFri);
+        thisFriCV.setHours(0,0,0,0);
+      }
+      const thisFriTs=Math.floor(thisFriCV.getTime()/1000);
 
+      // Show ALL pending since lastReset, but exclude from this Friday onwards
       const allPending=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(s=>{
           const ts=s.createdAt?.seconds||0;
-          return s.clientId===client.id&&!s.paid&&ts>=sinceTs&&ts>=lastFriTs&&ts<nextFriTs;
+          return s.clientId===client.id&&!s.paid&&ts>=sinceTs&&ts<thisFriTs;
         })
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
