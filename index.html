@@ -872,8 +872,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
       <span style="font-family:'Bebas Neue',cursive;font-size:17px;letter-spacing:1px;">TOTAL PENDIENTE</span>
       <span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--rojo)" id="stmt-total"></span>
     </div>
-    <div class="modal-actions" style="justify-content:space-between">
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
       <button class="btn-cancel" style="background:#f0eee9;color:var(--gris);font-size:11px" onclick="resetClientHistory('${stmtClientId||''}')">↺ Inicio desde hoy</button>
+      <button class="btn-cancel" style="background:#dbeafe;color:#1e40af;font-size:11px" onclick="recalcDebt('${stmtClientId||''}')">⟳ Recalcular saldo</button>
       <button class="btn-cancel" onclick="closeModal('modal-statement')">Cerrar</button>
     </div>
   </div>
@@ -2126,50 +2127,44 @@ window.openStatement=function(clientId){
   stmtClientId=clientId;
   const cl=clients.find(x=>x.id===clientId);
 
-  // ── Show ALL sales grouped by week, no date cutoff ──
-  const sinceTs=cl.lastResetAt||0;
+  // Semana: vie→jue. Cobra siguiente viernes.
+  // Sin filtro de fechas — todo se acumula hasta que se registre pago.
   const allSales=sales
-    .filter(s=>s.clientId===clientId&&(s.createdAt?.seconds||0)>=sinceTs)
+    .filter(s=>s.clientId===clientId)
     .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
   const debt=cl.debt||0;
   document.getElementById('stmt-title').textContent=`CUENTA — ${cl.name}`;
-  document.getElementById('stmt-period').textContent=`Estado de cuenta · Corte semanal viernes`;
+  document.getElementById('stmt-period').textContent=`Corte viernes · Todo acumulado`;
   document.getElementById('stmt-total').textContent=debt>0?`$${debt.toFixed(2)}`:'Al día ✓';
   document.getElementById('stmt-total').style.color=debt>0?'var(--rojo)':'var(--verde)';
 
-  // Group sales into weekly buckets (each week starts on Friday)
-  function getWeekStart(ts){
+  // Agrupar por semana (vie→jue)
+  function getWkFri(ts){
     const d=new Date(ts*1000);
-    const day=d.getDay(); // 0=Sun..5=Fri
-    const daysBack=(day-cutDay+7)%7;
+    const daysBack=(d.getDay()-cutDay+7)%7;
     const fri=new Date(d);
     fri.setDate(d.getDate()-daysBack);
     fri.setHours(0,0,0,0);
     return Math.floor(fri.getTime()/1000);
   }
-
-  // Build week buckets
   const weeks={};
   allSales.forEach(s=>{
-    const wk=getWeekStart(s.createdAt?.seconds||0);
+    const wk=getWkFri(s.createdAt?.seconds||0);
     if(!weeks[wk]) weeks[wk]=[];
     weeks[wk].push(s);
   });
-
   const sortedWeeks=Object.keys(weeks).sort((a,b)=>Number(a)-Number(b));
 
-  function renderRow(s,clientId){
+  function renderRow(s){
     const ts=s.createdAt?.seconds||0;
-    const sDate=new Date(ts*1000);
-    const isFriday=sDate.getDay()===cutDay;
+    const isFri=new Date(ts*1000).getDay()===cutDay;
     const its=(s.items||[]).map(i=>`${i.name}${s.isCargo?'':' ×'+i.qty}`).join(', ');
     const badge=s.isCargo?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">CARGO</span>':s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:4px">SUB</span>':'';
-    const friTag=isFriday?'<span style="background:#fed7aa;color:#9a3412;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px">VIE</span>':'';
+    const friTag=isFri?'<span style="background:#fed7aa;color:#9a3412;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px">VIE</span>':'';
     const sc=s.paid?'var(--verde)':'var(--rojo)';
-    const sl=s.paid?'Pagado':'Pendiente';
-    return `<div class="stmt-row" style="${isFriday?'background:#fff7ed;border-radius:6px;padding:3px 6px;':''}">
-      <div class="stmt-date">${s.date||''}${friTag} · ${badge}<span style="color:${sc};font-weight:600">${sl}</span></div>
+    return `<div class="stmt-row" style="${isFri?'background:#fff7ed;border-radius:6px;padding:3px 6px':''}">
+      <div class="stmt-date">${s.date||''}${friTag} · ${badge}<span style="color:${sc};font-weight:600">${s.paid?'Pagado':'Pendiente'}</span></div>
       <div class="stmt-items">${its}</div>
       <div class="stmt-amount" style="color:${sc}">$${s.total.toFixed(2)}</div>
       <button onclick="deleteSaleOrCargo('${s.id}',${s.total},'${stmtClientId}',${s.paid},${s.isCargo||false})" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:0 2px;flex-shrink:0" title="Eliminar">✕</button>
@@ -2182,15 +2177,20 @@ window.openStatement=function(clientId){
   } else {
     sortedWeeks.forEach(wkTs=>{
       const wkSales=weeks[wkTs];
-      const wkDate=new Date(Number(wkTs)*1000);
-      const wkEnd=new Date(wkDate); wkEnd.setDate(wkDate.getDate()+6);
-      const wkTotal=wkSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
-      const wkLabel=`${wkDate.toLocaleDateString('es-MX',{day:'numeric',month:'short'})} — ${wkEnd.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
-      html+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--marino);color:#fff;border-radius:8px;padding:6px 12px;margin:10px 0 4px;">
-        <span style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:13px">📅 SEMANA ${wkLabel}</span>
-        ${wkTotal>0?`<span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#fca5a5">Pendiente: $${wkTotal.toFixed(2)}</span>`:'<span style="font-size:11px;color:#86efac">✓ Pagado</span>'}
+      const fri=new Date(Number(wkTs)*1000);
+      const thu=new Date(fri); thu.setDate(fri.getDate()+6);
+      const cobra=new Date(fri); cobra.setDate(fri.getDate()+7);
+      const pending=wkSales.filter(s=>!s.paid).reduce((a,s)=>a+s.total,0);
+      const lbl=`${fri.toLocaleDateString('es-MX',{day:'numeric',month:'short'})} – ${thu.toLocaleDateString('es-MX',{day:'numeric',month:'short'})}`;
+      const cobraLbl=cobra.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--marino);color:#fff;border-radius:8px;padding:7px 12px;margin:10px 0 4px;gap:8px">
+        <div>
+          <div style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:13px">${lbl}</div>
+          <div style="font-size:9px;opacity:.6">Cobra: ${cobraLbl}</div>
+        </div>
+        ${pending>0?`<span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#fca5a5">$${pending.toFixed(2)}</span>`:'<span style="font-size:11px;color:#86efac;font-weight:600">✓ Pagado</span>'}
       </div>`;
-      html+=wkSales.map(s=>renderRow(s,clientId)).join('');
+      html+=wkSales.map(renderRow).join('');
     });
   }
 
@@ -2886,6 +2886,23 @@ window.addEventListener('resize',()=>{
 });
 
 
+// ── RECALCULATE DEBT FROM ACTUAL SALES ──
+window.recalcDebt=async function(clientId){
+  if(!clientId){showToast('Error: sin cliente','error');return;}
+  const cl=clients.find(x=>x.id===clientId);
+  if(!cl)return;
+  // Sum all unpaid sales for this client
+  const unpaidTotal=sales
+    .filter(s=>s.clientId===clientId&&!s.paid)
+    .reduce((a,s)=>a+s.total,0);
+  if(!confirm(`¿Recalcular saldo de ${cl.name}?\nSaldo actual: $${(cl.debt||0).toFixed(2)}\nSaldo real (ventas pendientes): $${unpaidTotal.toFixed(2)}`))return;
+  setSyncing();
+  await updateDoc(doc(db,'clients',clientId),{debt:unpaidTotal});
+  setSynced();
+  showToast(`Saldo de ${cl.name} actualizado a $${unpaidTotal.toFixed(2)}`,'success');
+  closeModal('modal-statement');
+};
+
 // ── RESET CLIENT HISTORY ──
 window.resetClientHistory=async function(clientId){
   if(!clientId){showToast('Error: sin cliente','error');return;}
@@ -3104,11 +3121,9 @@ function checkCustomerView(){
       const prevFridayTs=Math.floor(prevFriday.getTime()/1000);
 
       // ── Weekly cut: hide only THIS Friday onwards ──
-      // ── Show last 15 days, everything including today ──
-      const days15=Math.floor((Date.now()-15*24*60*60*1000)/1000);
-      const sinceTs=Math.max(client.lastResetAt||0, days15);
+      // Todo agrupado por semana — sin filtro de fechas, sin reinicios automáticos
       const allSalesCV=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(s=>s.clientId===client.id&&(s.createdAt?.seconds||0)>=sinceTs&&(s.createdAt?.seconds||0)<=Math.floor(Date.now()/1000))
+        .filter(s=>s.clientId===client.id)
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
       const debt=client.debt||0;
