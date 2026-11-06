@@ -874,7 +874,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
     </div>
     <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
       <button class="btn-cancel" style="background:#f0eee9;color:var(--gris);font-size:11px" onclick="resetClientHistory('${stmtClientId||''}')">↺ Inicio desde hoy</button>
-      <button class="btn-cancel" style="background:#dbeafe;color:#1e40af;font-size:11px" onclick="recalcDebt('${stmtClientId||''}')">⟳ Recalcular saldo</button>
+      <button class="btn-cancel" style="background:#dbeafe;color:#1e40af;font-size:11px" onclick="recalcDebt('${stmtClientId||''}')">⟳ Recalcular</button>
+      <button class="btn-cancel" style="background:#d1fae5;color:#065f46;font-size:11px" onclick="openAddMovimiento()">+ Agregar</button>
       <button class="btn-cancel" onclick="closeModal('modal-statement')">Cerrar</button>
     </div>
   </div>
@@ -1375,6 +1376,56 @@ body{font-family:'DM Sans',sans-serif;background:var(--crema);color:var(--marino
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-sub-venta')">Cancelar</button>
       <button class="btn-confirm" onclick="confirmarSubVenta()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MOVIMIENTO -->
+<div class="modal-overlay" id="modal-edit-mov">
+  <div class="modal">
+    <div class="modal-title">EDITAR MOVIMIENTO</div>
+    <input type="hidden" id="edit-mov-id">
+    <input type="hidden" id="edit-mov-clientid">
+    <input type="hidden" id="edit-mov-oldtotal">
+    <div class="modal-field"><div class="modal-label">Monto ($)</div>
+      <input class="modal-input" type="number" id="edit-mov-monto" min="0" step="0.5">
+    </div>
+    <div class="modal-field"><div class="modal-label">Estado</div>
+      <select class="modal-select" id="edit-mov-paid">
+        <option value="false">Pendiente</option>
+        <option value="true">Pagado</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-edit-mov')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarEditMovimiento()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR MOVIMIENTO MANUAL -->
+<div class="modal-overlay" id="modal-add-mov">
+  <div class="modal">
+    <div class="modal-title">AGREGAR MOVIMIENTO</div>
+    <div style="font-size:12px;color:var(--gris);margin-bottom:12px">Para recuperar movimientos borrados o agregar cargos con fecha específica</div>
+    <div class="modal-field"><div class="modal-label">Concepto</div>
+      <input class="modal-input" type="text" id="addmov-concepto" placeholder="Ej: Papas Sabritas, Préstamo...">
+    </div>
+    <div class="modal-field"><div class="modal-label">Monto ($)</div>
+      <input class="modal-input" type="number" id="addmov-monto" min="0" step="0.5" placeholder="0.00">
+    </div>
+    <div class="modal-field"><div class="modal-label">Fecha</div>
+      <input class="modal-input" type="datetime-local" id="addmov-fecha">
+    </div>
+    <div class="modal-field"><div class="modal-label">Estado</div>
+      <select class="modal-select" id="addmov-paid">
+        <option value="false">Pendiente</option>
+        <option value="true">Pagado</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-add-mov')">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmarAddMovimiento()">Agregar</button>
     </div>
   </div>
 </div>
@@ -2167,6 +2218,7 @@ window.openStatement=function(clientId){
       <div class="stmt-date">${s.date||''}${friTag} · ${badge}<span style="color:${sc};font-weight:600">${s.paid?'Pagado':'Pendiente'}</span></div>
       <div class="stmt-items">${its}</div>
       <div class="stmt-amount" style="color:${sc}">$${s.total.toFixed(2)}</div>
+      <button onclick="openEditMovimiento('${s.id}',${s.total},${s.paid},'${stmtClientId}')" style="background:none;border:none;cursor:pointer;color:#93c5fd;font-size:12px;padding:0 2px;flex-shrink:0" title="Editar">✎</button>
       <button onclick="deleteSaleOrCargo('${s.id}',${s.total},'${stmtClientId}',${s.paid},${s.isCargo||false})" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:0 2px;flex-shrink:0" title="Eliminar">✕</button>
     </div>`;
   }
@@ -2885,6 +2937,82 @@ window.addEventListener('resize',()=>{
   }
 });
 
+
+// ── EDITAR MOVIMIENTO ──
+window.openEditMovimiento=function(saleId,total,paid,clientId){
+  document.getElementById('edit-mov-id').value=saleId;
+  document.getElementById('edit-mov-clientid').value=clientId;
+  document.getElementById('edit-mov-oldtotal').value=total;
+  document.getElementById('edit-mov-monto').value=total;
+  document.getElementById('edit-mov-paid').value=String(paid);
+  openModal('modal-edit-mov');
+};
+window.confirmarEditMovimiento=async function(){
+  const saleId=document.getElementById('edit-mov-id').value;
+  const clientId=document.getElementById('edit-mov-clientid').value;
+  const oldTotal=parseFloat(document.getElementById('edit-mov-oldtotal').value);
+  const newTotal=parseFloat(document.getElementById('edit-mov-monto').value);
+  const newPaid=document.getElementById('edit-mov-paid').value==='true';
+  if(!newTotal||newTotal<=0){showToast('Monto inválido','error');return;}
+  const cl=clients.find(x=>x.id===clientId);
+  const sale=sales.find(x=>x.id===saleId);
+  setSyncing();
+  // Update sale
+  await updateDoc(doc(db,'sales',saleId),{total:newTotal,paid:newPaid});
+  // Recalculate debt: remove old effect, apply new
+  let debt=cl.debt||0;
+  // If was pending, remove old total; if now pending, add new total
+  if(!sale.paid) debt-=oldTotal;   // was pending: remove
+  if(!newPaid) debt+=newTotal;      // now pending: add
+  await updateDoc(doc(db,'clients',clientId),{debt:Math.max(0,debt)});
+  setSynced();
+  closeModal('modal-edit-mov');
+  showToast('Movimiento actualizado','success');
+  openStatement(clientId);
+};
+
+// ── AGREGAR MOVIMIENTO MANUAL ──
+window.openAddMovimiento=function(){
+  document.getElementById('addmov-concepto').value='';
+  document.getElementById('addmov-monto').value='';
+  document.getElementById('addmov-paid').value='false';
+  // Default to now
+  const now=new Date();
+  now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  document.getElementById('addmov-fecha').value=now.toISOString().slice(0,16);
+  openModal('modal-add-mov');
+};
+window.confirmarAddMovimiento=async function(){
+  const concepto=document.getElementById('addmov-concepto').value.trim();
+  const monto=parseFloat(document.getElementById('addmov-monto').value);
+  const fecha=document.getElementById('addmov-fecha').value;
+  const paid=document.getElementById('addmov-paid').value==='true';
+  if(!concepto){showToast('Escribe el concepto','error');return;}
+  if(!monto||monto<=0){showToast('Monto inválido','error');return;}
+  if(!stmtClientId){showToast('Error: sin cliente','error');return;}
+  const cl=clients.find(x=>x.id===stmtClientId);
+  const fechaDate=fecha?new Date(fecha):new Date();
+  setSyncing();
+  await addDoc(collection(db,'sales'),{
+    clientId:stmtClientId,
+    clientName:cl.name,
+    items:[{name:concepto,qty:1,price:monto}],
+    total:monto,
+    payMode:'credito',
+    payMethod:'—',
+    paid,
+    isCargo:true,
+    date:fechaDate.toLocaleString('es-MX'),
+    createdAt:{seconds:Math.floor(fechaDate.getTime()/1000),nanoseconds:0}
+  });
+  if(!paid){
+    await updateDoc(doc(db,'clients',stmtClientId),{debt:(cl.debt||0)+monto});
+  }
+  setSynced();
+  closeModal('modal-add-mov');
+  showToast('Movimiento agregado','success');
+  openStatement(stmtClientId);
+};
 
 // ── RECALCULATE DEBT FROM ACTUAL SALES ──
 window.recalcDebt=async function(clientId){
