@@ -2119,51 +2119,38 @@ window.toggleAppShared=async function(id,val){
   showToast(val?'Cliente disponible en Suscripciones':'Removido de Suscripciones','success');
 };
 let stmtClientId=null;
-window.openStatement=async function(clientId){
+window.openStatement=function(clientId){
   stmtClientId=clientId;
   const cl=clients.find(x=>x.id===clientId);
 
-  // ── Weekly cut logic ──
+  // ── Weekly cut: same logic as client link ──
+  // Hide only THIS Friday onwards — show everything else
   const now=new Date();
-  const dayOfWeek=now.getDay();
-  const daysBack=(dayOfWeek-cutDay+7)%7;
-  const lastFriday=new Date(now);
-  lastFriday.setDate(now.getDate()-daysBack);
-  lastFriday.setHours(0,0,0,0);
-  const lastFridayTs=Math.floor(lastFriday.getTime()/1000);
-  const prevFriday=new Date(lastFriday);
-  prevFriday.setDate(lastFriday.getDate()-7);
-  const prevFridayTs=Math.floor(prevFriday.getTime()/1000);
+  const todayDay=now.getDay();
+  let thisFri=new Date(now);
+  if(todayDay===cutDay){
+    thisFri.setHours(0,0,0,0);
+  } else {
+    const daysUntil=(cutDay-todayDay+7)%7;
+    thisFri.setDate(now.getDate()+daysUntil);
+    thisFri.setHours(0,0,0,0);
+  }
+  const thisFriTs=Math.floor(thisFri.getTime()/1000);
 
-  const sinceTs=cl.lastResetAt||0;
-
-  // All unpaid sales since reset
+  // ALL sales (paid + unpaid) before this Friday — same as client view
   const allSales=sales
-    .filter(s=>s.clientId===clientId&&(s.createdAt?.seconds||0)>=sinceTs)
+    .filter(s=>s.clientId===clientId&&(s.createdAt?.seconds||0)<thisFriTs)
     .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
-  // Current period: prevFriday → lastFriday (cobrar hoy)
-  const cobrarHoy=allSales.filter(s=>{
-    const ts=s.createdAt?.seconds||0;
-    return !s.paid&&ts>=prevFridayTs&&ts<lastFridayTs;
-  });
-  // Next period: from lastFriday onwards (cobrar siguiente semana)
-  const proxSemana=allSales.filter(s=>{
-    const ts=s.createdAt?.seconds||0;
-    return !s.paid&&ts>=lastFridayTs;
-  });
-
-  const totalCobrarHoy=cobrarHoy.reduce((a,s)=>a+s.total,0);
-  const totalProxSemana=proxSemana.reduce((a,s)=>a+s.total,0);
-  const totalPending=totalCobrarHoy+totalProxSemana;
+  // Use client.debt as authoritative total
+  const debt=cl.debt||0;
 
   document.getElementById('stmt-title').textContent=`CUENTA — ${cl.name}`;
-  document.getElementById('stmt-period').textContent=`Corte: ${lastFriday.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})} · Solo saldo pendiente`;
-  document.getElementById('stmt-total').textContent=totalPending>0?`$${totalPending.toFixed(2)}`:'Al día ✓';
-  document.getElementById('stmt-total').style.color=totalPending>0?'var(--rojo)':'var(--verde)';
+  document.getElementById('stmt-period').textContent=`Saldo pendiente · Corte: ${thisFri.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'})}`;
+  document.getElementById('stmt-total').textContent=debt>0?`$${debt.toFixed(2)}`:'Al día ✓';
+  document.getElementById('stmt-total').style.color=debt>0?'var(--rojo)':'var(--verde)';
 
   function renderRow(s){
-    if(s.isCobro) return '';
     const ts=s.createdAt?.seconds||0;
     const sDate=new Date(ts*1000);
     const isFriday=sDate.getDay()===cutDay;
@@ -2172,40 +2159,21 @@ window.openStatement=async function(clientId){
       ?'<span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">CARGO</span>'
       :s.isSub?'<span style="background:#ede9fe;color:#5b21b6;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px">SUB</span>':'';
     const friTag=isFriday?'<span style="background:#fed7aa;color:#9a3412;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-left:4px">VIE</span>':'';
+    const statusColor=s.paid?'var(--verde)':'var(--rojo)';
+    const statusLabel=s.paid?'Pagado':'Pendiente';
     return `<div class="stmt-row" style="${isFriday?'background:#fff7ed;border-radius:6px;padding:4px 6px;margin:2px 0':''}">
-      <div class="stmt-date">${s.date||''}${friTag} · ${badge}<span style="color:var(--rojo);font-weight:600">Pendiente</span></div>
+      <div class="stmt-date">${s.date||''}${friTag} · ${badge}<span style="color:${statusColor};font-weight:600">${statusLabel}</span></div>
       <div class="stmt-items">${its}</div>
-      <div class="stmt-amount" style="color:var(--rojo)">$${s.total.toFixed(2)}</div>
-      <button onclick="deleteSaleOrCargo('${s.id}',${s.total},'${stmtClientId}',${s.paid},${s.isCargo||false})" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:0 2px;flex-shrink:0" title="Eliminar movimiento">✕</button>
+      <div class="stmt-amount" style="color:${statusColor}">$${s.total.toFixed(2)}</div>
+      <button onclick="deleteSaleOrCargo('${s.id}',${s.total},'${stmtClientId}',${s.paid},${s.isCargo||false})" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:0 2px;flex-shrink:0" title="Eliminar">✕</button>
     </div>`;
   }
 
   let html='';
-
-  if(!totalPending){
-    html='<div style="color:var(--verde);font-size:14px;font-weight:600;padding:16px 0;text-align:center">✓ Al día — sin saldo pendiente</div>';
+  if(!allSales.length){
+    html='<div style="color:var(--verde);font-size:14px;font-weight:600;padding:16px 0;text-align:center">✓ Sin movimientos registrados</div>';
   } else {
-    // COBRAR HOY section
-    if(cobrarHoy.length){
-      html+=`<div style="background:var(--rojo);color:#fff;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-family:'Bebas Neue',cursive;letter-spacing:1px;font-size:14px">🔔 COBRAR HOY — ${lastFriday.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short'}).toUpperCase()}</span>
-        <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px">$${totalCobrarHoy.toFixed(2)}</span>
-      </div>`;
-      html+=cobrarHoy.map(renderRow).join('');
-    }
-
-    // PRÓXIMA SEMANA section
-    if(proxSemana.length){
-      html+=`<div style="display:flex;align-items:center;gap:8px;margin:12px 0">
-        <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
-        <span style="font-size:10px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap">Se cobra la semana siguiente</span>
-        <div style="flex:1;height:1px;background:var(--crema-dark)"></div>
-      </div>`;
-      html+=proxSemana.map(renderRow).join('');
-      if(totalProxSemana>0){
-        html+=`<div style="text-align:right;font-size:11px;color:var(--gris);margin-top:6px;font-family:'DM Mono',monospace">Próxima semana: $${totalProxSemana.toFixed(2)}</div>`;
-      }
-    }
+    html=allSales.map(renderRow).join('');
   }
 
   document.getElementById('stmt-body').innerHTML=html;
