@@ -2126,7 +2126,7 @@ window.openStatement=function(clientId){
   stmtClientId=clientId;
   const cl=clients.find(x=>x.id===clientId);
 
-  // ── Show ALL sales grouped by week (like a bank statement) ──
+  // ── Show ALL sales grouped by week, no date cutoff ──
   const sinceTs=cl.lastResetAt||0;
   const allSales=sales
     .filter(s=>s.clientId===clientId&&(s.createdAt?.seconds||0)>=sinceTs)
@@ -3104,10 +3104,11 @@ function checkCustomerView(){
       const prevFridayTs=Math.floor(prevFriday.getTime()/1000);
 
       // ── Weekly cut: hide only THIS Friday onwards ──
-      // ── Show ALL sales grouped by week — like a bank statement ──
-      const sinceTs=client.lastResetAt||0;
+      // ── Show last 15 days, everything including today ──
+      const days15=Math.floor((Date.now()-15*24*60*60*1000)/1000);
+      const sinceTs=Math.max(client.lastResetAt||0, days15);
       const allSalesCV=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(s=>s.clientId===client.id&&(s.createdAt?.seconds||0)>=sinceTs)
+        .filter(s=>s.clientId===client.id&&(s.createdAt?.seconds||0)>=sinceTs&&(s.createdAt?.seconds||0)<=Math.floor(Date.now()/1000))
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
       const debt=client.debt||0;
