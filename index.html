@@ -3118,18 +3118,21 @@ function checkCustomerView(){
       }
       const thisFriTs=Math.floor(thisFriCV.getTime()/1000);
 
-      // Show ALL unpaid — no lastResetAt filter, only hide this Friday onwards
+      // Show ALL sales for client excluding this Friday onwards
+      // Include paid AND unpaid — client sees full consumption history
+      // The debt total comes from client.debt in Firebase (managed by admin)
       const allPending=salesSnap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(s=>{
           const ts=s.createdAt?.seconds||0;
-          return s.clientId===client.id&&!s.paid&&ts<thisFriTs;
+          return s.clientId===client.id&&ts<thisFriTs&&!s.isCobro;
         })
         .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
 
-      const total=allPending.reduce((a,s)=>a+s.total,0);
-      document.getElementById('cv-debt').textContent='$'+total.toFixed(2);
-      document.getElementById('cv-status').textContent=total>0?'Saldo pendiente':'Al día ✓';
-      document.getElementById('cv-status').style.color=total>0?'#C8102E':'#16a34a';
+      // Use client.debt from Firebase as the authoritative total
+      const debt=client.debt||0;
+      document.getElementById('cv-debt').textContent='$'+debt.toFixed(2);
+      document.getElementById('cv-status').textContent=debt>0?'Saldo pendiente':'Al día ✓';
+      document.getElementById('cv-status').style.color=debt>0?'#C8102E':'#16a34a';
 
       const tbody=document.getElementById('cv-tbody');
       if(!allPending.length){
